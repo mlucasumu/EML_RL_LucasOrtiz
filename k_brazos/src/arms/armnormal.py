@@ -80,7 +80,7 @@ class ArmNormal(Arm):
         mu_values = list(mu_values)
         sigma = 1.0
 
-        arms = [ArmNormal(mu, sigma) for mu in mu_values]
+        arms = [cls(mu, sigma) for mu in mu_values]
 
         return arms
 
