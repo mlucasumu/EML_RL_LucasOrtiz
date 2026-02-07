@@ -18,10 +18,10 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from algorithms import Algorithm, EpsilonGreedy
+import algorithms
 
 
-def get_algorithm_label(algo: Algorithm) -> str:
+def get_algorithm_label(algo: algorithms.Algorithm) -> str:
     """
     Genera una etiqueta descriptiva para el algoritmo incluyendo sus parámetros.
 
@@ -31,17 +31,17 @@ def get_algorithm_label(algo: Algorithm) -> str:
     :rtype: str
     """
     label = type(algo).__name__
-    if isinstance(algo, EpsilonGreedy):
+    if isinstance(algo, algorithms.EpsilonGreedy):
         label += f" (epsilon={algo.epsilon})"
-    # elif isinstance(algo, OtroAlgoritmo):
-    #     label += f" (parametro={algo.parametro})"
+    elif isinstance(algo, algorithms.Softmax):
+        label += f" (temp={algo.temp})"
     # Añadir más condiciones para otros algoritmos aquí
     else:
         raise ValueError("El algoritmo debe ser de la clase Algorithm o una subclase.")
     return label
 
 
-def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algorithm]):
+def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[algorithms.Algorithm]):
     """
     Genera la gráfica de Recompensa Promedio vs Pasos de Tiempo.
 
@@ -64,7 +64,7 @@ def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algor
     plt.show()
 
 
-def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[Algorithm]):
+def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[algorithms.Algorithm]):
     """
     Genera la gráfica de Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo.
 
