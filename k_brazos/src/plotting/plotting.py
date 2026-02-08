@@ -38,11 +38,11 @@ def get_algorithm_label(algo: algorithms.Algorithm) -> str:
         label += f" (temp={algo.temp})"
     elif isinstance(algo, algorithms.PreferenceGradient):
         label += f" (alpha={algo.alpha})"
-    elif isinstance(algo, UCB1):
+    elif isinstance(algo, algorithms.UCB1):
         label += f" (c={algo.c})"
-    elif isinstance(algo, UCB2):
+    elif isinstance(algo, algorithms.UCB2):
         label += f" (alpha={algo.alpha})"
-    elif isinstance(algo, UCB1Tuned):
+    elif isinstance(algo, algorithms.UCB1Tuned):
         label += f" (rewards={algo.rewards})"
     # elif isinstance(algo, OtroAlgoritmo):
     #     label += f" (parametro={algo.parametro})"

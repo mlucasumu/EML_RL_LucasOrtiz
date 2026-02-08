@@ -8,9 +8,7 @@ class UCB1Tuned(Algorithm):
         :param k: Número de brazos.
         """
         super().__init__(k)
-
-    def load_rewards(self, rewards):
-        self.rewards = np.array(rewards)
+        self.rewards = np.zeros(len(self.values))
     
     def empiric_variance(self):
         """
@@ -33,3 +31,7 @@ class UCB1Tuned(Algorithm):
         chosen_arm = np.argmax(ucb_values)
 
         return chosen_arm
+    
+    def update(self, chosen_arm: int, reward: float):
+        super().update(chosen_arm=chosen_arm, reward=reward)
+        self.rewards[chosen_arm] = reward
