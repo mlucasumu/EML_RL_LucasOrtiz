@@ -11,9 +11,6 @@ class UCB2(Algorithm):
         super().__init__(k)
         self.alpha = alpha
         
-        # Número de veces que cada brazo ha sido jugado
-        self.counts = np.zeros(k)
-        
         # Época actual de cada brazo
         self.r = np.zeros(k, dtype=int)
         

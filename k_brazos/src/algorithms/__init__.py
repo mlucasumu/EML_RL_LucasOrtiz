@@ -17,7 +17,8 @@ from .algorithm import Algorithm
 from .epsilon_greedy import EpsilonGreedy
 from .ucb_1 import UCB1
 from .ucb_2 import UCB2
+from .ucb_1_tuned import UCB1Tuned
 
 # Lista de módulos o clases públicas
-__all__ = ['Algorithm', 'EpsilonGreedy', 'UCB1', 'UCB2']
+__all__ = ['Algorithm', 'EpsilonGreedy', 'UCB1', 'UCB2', 'UCB1Tuned']
 
