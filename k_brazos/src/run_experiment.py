@@ -10,10 +10,11 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
     optimal_expected_reward = bandit.get_expected_rewards()[optimal_arm]
 
     rewards = np.zeros((len(algorithms), steps)) # Matriz para almacenar las recompensas promedio.
-
     optimal_selections = np.zeros((len(algorithms), steps))  # Matriz para almacenar el porcentaje de selecciones óptimas.
-
     cumulative_regret_per_algo = np.zeros((len(algorithms), steps)) # Regret (arrepentimiento) acumulado por algoritmo
+
+    # Recompensas por brazo. Se almacenan las recompensas de TODAS las runs. La forma del histograma no debería verse afectada.
+    rewards_per_arm_per_algo = [{arm:[] for arm in range(bandit.k)} for i in range(len(algorithms))]
 
     np.random.seed(seed)  # Asegurar reproducibilidad de resultados.
 
@@ -38,15 +39,18 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
                 rewards[idx, step] += reward # Acumular la recompensa obtenida en la matriz rewards para el algoritmo idx en el paso step.
                 total_rewards_per_algo[idx] += reward # Acumular la recompensa obtenida en total_rewards_per_algo para el algoritmo idx.
 
+                rewards_per_arm_per_algo[idx][chosen_arm].append(reward) # Recompensa del brazo elegido para el algoritmo actual
+
                 if chosen_arm == optimal_arm:
-                    optimal_selections[idx, step] += 1 # Modificar optimal_selections cuando el brazo elegido se corresponda con el brazo óptimo optimal_arm
+                    optimal_selections[idx, step] += 1 # Modificar optimal_selections cuando el brazo elegido se corresponda con el brazo óptimo
 
                 # Cálculo del regret
                 current_cumulative_reward[idx] = current_cumulative_reward[idx] + reward
                 cumulative_regret_per_algo[idx, step] += optimal_cumulative_reward - current_cumulative_reward[idx]
 
+
     rewards /= runs
     optimal_selections /= runs
     cumulative_regret_per_algo /= runs
 
-    return rewards, optimal_selections, cumulative_regret_per_algo
+    return rewards, optimal_selections, cumulative_regret_per_algo, rewards_per_arm_per_algo
