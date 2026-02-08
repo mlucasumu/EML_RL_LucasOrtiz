@@ -38,6 +38,14 @@ def get_algorithm_label(algo: algorithms.Algorithm) -> str:
         label += f" (temp={algo.temp})"
     elif isinstance(algo, algorithms.PreferenceGradient):
         label += f" (alpha={algo.alpha})"
+    elif isinstance(algo, UCB1):
+        label += f" (c={algo.c})"
+    elif isinstance(algo, UCB2):
+        label += f" (alpha={algo.alpha})"
+    elif isinstance(algo, UCB1Tuned):
+        label += f" (rewards={algo.rewards})"
+    # elif isinstance(algo, OtroAlgoritmo):
+    #     label += f" (parametro={algo.parametro})"
     # Añadir más condiciones para otros algoritmos aquí
     else:
         raise ValueError("El algoritmo debe ser de la clase Algorithm o una subclase.")

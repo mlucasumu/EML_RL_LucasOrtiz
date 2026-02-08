@@ -37,9 +37,9 @@ class EpsilonGreedy(Algorithm):
 
         :return: índice del brazo seleccionado.
         """
-        if np.any(self.counts == 0): # NUEVO
-            # Selecciona el primer brazo que no ha sido probado (inicialización de todos los brazos)
-            chosen_arm = np.argmin(self.counts)
+        # Fase de inicialización: jugar cada brazo una vez
+        if np.any(self.counts == 0):
+            return np.argmin(self.counts)
         elif np.random.random() < self.epsilon:
             # Selecciona un brazo al azar
             chosen_arm = np.random.choice(self.k)
