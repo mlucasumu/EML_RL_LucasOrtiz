@@ -68,6 +68,6 @@ class UCB2(Algorithm):
         self.r[self.current_arm] += 1
         
         # Calcular cuántas veces debemos jugar este brazo en esta época
-        self.remaining_plays = self.tau(self.r[self.current_arm]) - 1 # tau(k_a + 1) - tau(k_a) = tau(k_a) - 1
+        self.remaining_plays = self.tau(self.r[self.current_arm] + 1) - self.tau(self.current_arm) # tau(k_a + 1) - tau(k_a)
         
         return self.current_arm
