@@ -13,6 +13,8 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
 
     optimal_selections = np.zeros((len(algorithms), steps))  # Matriz para almacenar el porcentaje de selecciones óptimas.
 
+    cumulative_regret_per_algo = np.zeros((len(algorithms), steps)) # Regret (arrepentimiento) acumulado por algoritmo
+
     np.random.seed(seed)  # Asegurar reproducibilidad de resultados.
 
     for run in range(runs):
@@ -24,7 +26,6 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
         total_rewards_per_algo = np.zeros(len(algorithms)) # Acumulador de recompensas por algoritmo. Necesario para calcular el promedio.
         optimal_cumulative_reward = 0 # Recompensa óptima esperada acumulada durante un número de pasos (para el cálculo del regret)
         current_cumulative_reward = np.zeros((len(algorithms))) # Recompensa acumulada para cada algoritmo
-        cumulative_regret_per_algo = np.zeros((len(algorithms), steps)) # Regret (arrepentimiento) acumulado por algoritmo
 
         for step in range(steps):
             optimal_cumulative_reward = optimal_cumulative_reward + optimal_expected_reward # Recompensa óptima acumulada para el paso actual
@@ -42,7 +43,7 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
 
                 # Cálculo del regret
                 current_cumulative_reward[idx] = current_cumulative_reward[idx] + reward
-                cumulative_regret_per_algo[idx, step] = optimal_cumulative_reward - current_cumulative_reward[idx]
+                cumulative_regret_per_algo[idx, step] += optimal_cumulative_reward - current_cumulative_reward[idx]
 
     rewards /= runs
     optimal_selections /= runs
