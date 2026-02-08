@@ -16,7 +16,7 @@ class PreferenceGradient(Algorithm):
 
         super().__init__(k)
         self.alpha = alpha
-        self.preferences = np.zeros(k, dtype=int)
+        self.preferences = np.zeros(k, dtype=float)
         self.probs = []
 
     def select_arm(self) -> int:
