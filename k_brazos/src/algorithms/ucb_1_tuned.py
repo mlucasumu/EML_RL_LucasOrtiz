@@ -1,52 +1,6 @@
 import numpy as np
 from algorithms.algorithm import Algorithm
 
-class UCB1Tuned_(Algorithm):
-    def __init__(self, k: int):
-        """
-        Inicializa el algoritmo UCB1-Tuned.
-        :param k: Número de brazos.
-        """
-        super().__init__(k)
-        self.rewards = [[] for _ in range(k)]
-    
-    def empiric_variance(self):
-        """
-        Calcula la varianza empírica de las recompensas
-        :return: vector con las varianzas
-        """
-        sum_total = np.zeros(len(self.counts))
-        for i in range(len(self.counts)):
-            sum_total[i] = sum((np.array(self.rewards[i]) - self.values[i])**2)
-
-        return (1/self.counts) * sum_total
-
-    def select_arm(self) -> int:
-        """
-        Selecciona un brazo basado en la política UCB1-Tuned.
-        :return: índice del brazo seleccionado.
-        """
-        # Fase de inicialización: jugar cada brazo una vez
-        if np.any(self.counts == 0):
-            return np.argmin(self.counts)
-        
-        sum_total = np.zeros(len(self.counts))
-        for i in range(len(self.counts)):
-            sum_total[i] = sum((np.array(self.rewards[i]) - self.values[i])**2)
-        
-        ucb_values = self.values + np.sqrt((np.log(sum(self.counts))/self.counts)*np.minimum(0.25,self.empiric_variance()+np.sqrt(2*np.log(sum(self.counts))/self.counts)))
-
-        chosen_arm = np.argmax(ucb_values)
-
-        return chosen_arm
-    
-    def update(self, chosen_arm: int, reward: float):
-        super().update(chosen_arm=chosen_arm, reward=reward)
-        self.rewards[chosen_arm].append(reward)
-
-import numpy as np
-from algorithms.algorithm import Algorithm
-
 class UCB1Tuned(Algorithm):
     def __init__(self, k: int):
         """
@@ -54,7 +8,7 @@ class UCB1Tuned(Algorithm):
         :param k: Número de brazos.
         """
         super().__init__(k)
-        # Store sum of rewards and sum of squared rewards for efficient variance calculation
+        # Almacenamos la suma de las recompensas y la suma de los cuadrados de las recompensas para un cálculo eficiente de la varianza
         self.sum_rewards = np.zeros(k)
         self.sum_squared_rewards = np.zeros(k)
     
