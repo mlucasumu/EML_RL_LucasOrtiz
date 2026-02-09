@@ -17,17 +17,19 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class Algorithm(ABC):
-    def __init__(self, k: int):
+    def __init__(self, k: int, initial_value: float = 0.0):
         """
         Inicializa el algoritmo con k brazos.
         :param k: Número de brazos.
+        :param initial_value: Valor inicial para las estimaciones de recompensa (Optimistic Initialization).
         """
         # Número de brazos
         self.k: int = k
         # Número de veces que se ha seleccionado cada brazo
         self.counts: np.ndarray = np.zeros(k, dtype=int)
         # Recompensa promedio estimada de cada brazo
-        self.values: np.ndarray = np.zeros(k, dtype=float)
+        self.values: np.ndarray = np.full(k, initial_value, dtype=float)
+        self.initial_value = initial_value
 
     @abstractmethod
     def select_arm(self) -> int:

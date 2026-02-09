@@ -31,8 +31,8 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
     :param algorithms: Lista de instancias de algoritmos a comparar.
     :param steps: Número de pasos de tiempo por ejecución.
     :param runs: Número de ejecuciones independientes.
-    :return: Tuple de tres elementos: recompensas promedio, porcentaje de selecciones óptimas, y estadísticas de brazos.
-    :rtype: Tuple of (np.ndarray, np.ndarray, list)
+    :return: Tuple de tres elementos: recompensas promedio, porcentaje de selecciones óptimas, y lamento (regret).
+    :rtype: Tuple of (np.ndarray, np.ndarray, np.ndarray)
     """
 
     k = bandit.k
@@ -41,6 +41,7 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
     # Inicializar matrices para recompensas y selecciones óptimas
     rewards = np.zeros((len(algorithms), steps))
     optimal_selections = np.zeros((len(algorithms), steps))
+    regrets = np.zeros((len(algorithms), steps))
 
 
     for run in range(runs):
@@ -70,12 +71,17 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
 
                 if chosen_arm == optimal_arm:
                     optimal_selections[idx, step] += 1
+                
+                # Calcular regret (diferencia entre valor esperado óptimo y valor esperado del brazo elegido)
+                q_val = current_bandit.get_expected_value(chosen_arm)
+                regrets[idx, step] += (q_max - q_val)
 
     # Promediar las recompensas y el regret sobre todas las ejecuciones
     rewards /= runs
     optimal_selections = (optimal_selections / runs) * 100
+    regrets /= runs
 
-    return rewards, optimal_selections
+    return rewards, optimal_selections, regrets
 
 
 
@@ -102,7 +108,7 @@ def main():
     algorithms = [EpsilonGreedy(k=k, epsilon=0), EpsilonGreedy(k=k, epsilon=0.01), EpsilonGreedy(k=k, epsilon=0.1)]
 
     # Ejecutar el experimento y obtener las recompensas promedio y selecciones óptimas
-    rewards, optimal_selections = run_experiment(bandit, algorithms, steps, runs)
+    rewards, optimal_selections, regrets = run_experiment(bandit, algorithms, steps, runs)
 
     # Generar las gráficas utilizando las funciones externas
     plot_average_rewards(steps, rewards, algorithms)
