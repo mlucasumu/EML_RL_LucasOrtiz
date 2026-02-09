@@ -23,14 +23,13 @@ class Softmax(Algorithm):
 
         :return: índice del brazo seleccionado.
         """
+        # Fase de inicialización: jugar cada brazo una vez
+        if np.any(self.counts == 0):
+            return np.argmin(self.counts)
+        
         # Calcular probabilidades
-        probs = []
-        for value in self.values:
-            numerator = np.exp(value/self.temp)
-            probs.append(numerator)
-
-        total = np.sum(probs)
-        probs = probs/total
+        probs = np.exp(self.values/self.temp)
+        probs = probs / np.sum(probs)
 
         # Seleccionar acción de acuerdo a probabilidades
         chosen_arm = np.random.choice(list(range(self.k)), p=probs)

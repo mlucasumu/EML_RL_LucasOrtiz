@@ -25,18 +25,11 @@ class PreferenceGradient(Algorithm):
 
         :return: índice del brazo seleccionado.
         """
-        # Calcular probabilidades
-        probs = []
-        for preference in self.preferences:
-            numerator = np.exp(preference)
-            probs.append(numerator)
+        # Fase de inicialización: jugar cada brazo una vez
+        if np.any(self.counts == 0):
+            return np.argmin(self.counts)
 
-        total = np.sum(probs)
-        probs = probs/total
-        self.probs = probs
-
-        # Seleccionar acción de acuerdo a probabilidades
-        chosen_arm = np.random.choice(list(range(self.k)), p=probs)
+        chosen_arm = np.random.choice(list(range(self.k)), p=self.probs)
 
         return chosen_arm
 
@@ -50,6 +43,11 @@ class PreferenceGradient(Algorithm):
 
         # Actualizamos las preferencias (Sutton y Barto 2018, página 37)
         rewards_baseline = np.mean(self.values)
+
+        # Calcular probabilidades
+        probs = np.exp(self.preferences)
+        probs = probs / np.sum(probs)
+        self.probs = probs
         
         for i in range(len(self.preferences)):
             if i==chosen_arm:
