@@ -4,6 +4,8 @@ from typing import List
 from algorithms import Algorithm
 from arms import Bandit
 
+from tqdm import tqdm
+
 def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs: int, seed: int = 42):
 
     optimal_arm = bandit.optimal_arm  # Necesario para calcular el porcentaje de selecciones óptimas.
@@ -18,7 +20,7 @@ def run_experiment(bandit: Bandit, algorithms: List[Algorithm], steps: int, runs
 
     np.random.seed(seed)  # Asegurar reproducibilidad de resultados.
 
-    for run in range(runs):
+    for run in tqdm(range(runs)):
         current_bandit = Bandit(arms=bandit.arms)
 
         for algo in algorithms:
