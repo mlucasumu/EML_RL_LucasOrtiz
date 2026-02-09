@@ -8,8 +8,7 @@ class UCB1Tuned(Algorithm):
         :param k: Número de brazos.
         """
         super().__init__(k)
-        # Almacenamos la suma de las recompensas y la suma de los cuadrados de las recompensas para un cálculo eficiente de la varianza
-        self.sum_rewards = np.zeros(k)
+        # Almacenamos la suma de los cuadrados de las recompensas para un cálculo eficiente de la varianza
         self.sum_squared_rewards = np.zeros(k)
     
     def empiric_variance(self):
@@ -48,6 +47,4 @@ class UCB1Tuned(Algorithm):
     
     def update(self, chosen_arm: int, reward: float):
         super().update(chosen_arm=chosen_arm, reward=reward)
-        # De forma incremental aumentalos las sumas
-        self.sum_rewards[chosen_arm] += reward
         self.sum_squared_rewards[chosen_arm] += reward ** 2
