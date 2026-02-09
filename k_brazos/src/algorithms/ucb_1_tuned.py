@@ -16,12 +16,9 @@ class UCB1Tuned(Algorithm):
         Calcula la varianza empírica de las recompensas usando fórmula incremental
         :return: vector con las varianzas
         """
-        # Evitar la división entre 0
-        safe_counts = np.maximum(self.counts, 1)
         # Varianza = E[X^2] - E[X]^2
         # Necesitamos sum((r - mean)^2) / n = (sum(r^2) - n*mean^2) / n
-        variance = (self.sum_squared_rewards - self.counts * self.values**2) / safe_counts
-        return variance
+        return (self.sum_squared_rewards - self.counts * self.values**2) / self.counts
     
     def select_arm(self) -> int:
         """
