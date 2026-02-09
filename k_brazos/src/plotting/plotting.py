@@ -43,7 +43,7 @@ def get_algorithm_label(algo: algorithms.Algorithm) -> str:
     elif isinstance(algo, algorithms.UCB2):
         label += f" (alpha={algo.alpha})"
     elif isinstance(algo, algorithms.UCB1Tuned):
-        label += f" (rewards={algo.rewards})"
+        label += f""
     # elif isinstance(algo, OtroAlgoritmo):
     #     label += f" (parametro={algo.parametro})"
     # Añadir más condiciones para otros algoritmos aquí
