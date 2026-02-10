@@ -17,6 +17,7 @@ from typing import List
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import pandas as pd
 
 from algorithms import (
@@ -91,8 +92,22 @@ def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorith
     :param optimal_selections: Matriz de porcentaje de selecciones óptimas.
     :param algorithms: Lista de instancias de algoritmos comparados.
     """
+    sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
-    raise NotImplementedError("Esta función aún no ha sido implementada.")
+    plt.figure(figsize=(14, 7))
+    for idx, algo in enumerate(algorithms):
+        label = get_algorithm_label(algo)
+        plt.plot(range(steps), optimal_selections[idx], label=label, linewidth=2)
+    
+    plt.ylim(0, 1)
+    plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+
+    plt.xlabel('Pasos de Tiempo', fontsize=14)
+    plt.ylabel('Porcentaje Selección Óptima', fontsize=14)
+    plt.title('Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo', fontsize=16)
+    plt.legend(title='Algoritmos')
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm]):
