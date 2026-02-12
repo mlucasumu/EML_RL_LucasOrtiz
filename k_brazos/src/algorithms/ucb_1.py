@@ -22,7 +22,7 @@ class UCB1(Algorithm):
         
         # Calcula el índice UCB1 para cada brazo
         ucb_values = self.values + self.c * np.sqrt(
-            np.log(sum(self.counts)) / self.counts
+            2*np.log(sum(self.counts)) / self.counts
         )
         chosen_arm = np.argmax(ucb_values)
 
