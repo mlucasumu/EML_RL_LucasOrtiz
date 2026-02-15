@@ -20,10 +20,18 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import pandas as pd
 
-import algorithms
+from algorithms import (
+    Algorithm,
+    EpsilonGreedy,
+    Softmax,
+    PreferenceGradient,
+    UCB1,
+    UCB2,
+    UCB1Tuned
+)
 
 
-def get_algorithm_label(algo: algorithms.Algorithm) -> str:
+def get_algorithm_label(algo: Algorithm) -> str:
     """
     Genera una etiqueta descriptiva para el algoritmo incluyendo sus parámetros.
 
@@ -33,27 +41,27 @@ def get_algorithm_label(algo: algorithms.Algorithm) -> str:
     :rtype: str
     """
     label = type(algo).__name__
-    if isinstance(algo, algorithms.EpsilonGreedy):
+    if isinstance(algo, EpsilonGreedy):
         label += f" (epsilon={algo.epsilon})"
-    elif isinstance(algo, algorithms.Softmax):
+    elif isinstance(algo, Softmax):
         label += f" (temp={algo.temp})"
-    elif isinstance(algo, algorithms.PreferenceGradient):
+    elif isinstance(algo, PreferenceGradient):
         label += f" (alpha={algo.alpha})"
-    elif isinstance(algo, algorithms.UCB1):
+    elif isinstance(algo, UCB1):
         label += f" (c={algo.c})"
-    elif isinstance(algo, algorithms.UCB2):
+    elif isinstance(algo, UCB2):
         label += f" (alpha={algo.alpha})"
-    elif isinstance(algo, algorithms.UCB1Tuned):
+    elif isinstance(algo, UCB1Tuned):
         label += f""
     # elif isinstance(algo, OtroAlgoritmo):
     #     label += f" (parametro={algo.parametro})"
     # Añadir más condiciones para otros algoritmos aquí
     else:
-        raise ValueError("El algoritmo debe ser de la clase Algorithm o una subclase.")
+        raise ValueError(f"El algoritmo debe ser de la clase Algorithm o una subclase, y es de la clase {type(algo)}.")
     return label
 
 
-def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[algorithms.Algorithm]):
+def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[Algorithm]):
     """
     Genera la gráfica de Recompensa Promedio vs Pasos de Tiempo.
 
@@ -76,7 +84,7 @@ def plot_average_rewards(steps: int, rewards: np.ndarray, algorithms: List[algor
     plt.show()
 
 
-def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[algorithms.Algorithm]):
+def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorithms: List[Algorithm]):
     """
     Genera la gráfica de Porcentaje de Selección del Brazo Óptimo vs Pasos de Tiempo.
 
@@ -102,17 +110,27 @@ def plot_optimal_selections(steps: int, optimal_selections: np.ndarray, algorith
     plt.show()
 
 
-def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[algorithms.Algorithm]):
+def plot_regret(steps: int, regret_accumulated: np.ndarray, algorithms: List[Algorithm]):
     """
-    Genera la gráfica de Regret Acumulado vs Pasos de Tiempo
+    Genera la gráfica de Arrepentimiento Acumulado vs Pasos de Tiempo.
 
     :param steps: Número de pasos de tiempo.
-    :param regret_accumulated: Matriz de regret acumulado (algoritmos x pasos).
+    :param regrets: Matriz de regret acumulado (algoritmos x pasos).
     :param algorithms: Lista de instancias de algoritmos comparados.
-    :param args: Opcional. Parámetros que consideres. P.e. la cota teórica Cte * ln(T).
     """
+    sns.set_theme(style="whitegrid", palette="muted", font_scale=1.2)
 
-    raise NotImplementedError("Esta función aún no ha sido implementada.")
+    plt.figure(figsize=(14, 7))
+    for idx, algo in enumerate(algorithms):
+        label = get_algorithm_label(algo)
+        plt.plot(range(steps), regret_accumulated[idx], label=label, linewidth=2)
+
+    plt.xlabel('Pasos de Tiempo', fontsize=14)
+    plt.ylabel('Arrepentimiento Acumulado', fontsize=14)
+    plt.title('Arrepentimiento Acumulado vs Pasos de Tiempo', fontsize=16)
+    plt.legend(title='Algoritmos')
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_arm_statistics( # Obtenida con ayuda de ChatGPT
