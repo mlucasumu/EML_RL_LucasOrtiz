@@ -23,6 +23,7 @@ import pandas as pd
 from algorithms import (
     Algorithm,
     EpsilonGreedy,
+    EpsilonGreedyDecay,
     Softmax,
     PreferenceGradient,
     UCB1,
@@ -43,6 +44,8 @@ def get_algorithm_label(algo: Algorithm) -> str:
     label = type(algo).__name__
     if isinstance(algo, EpsilonGreedy):
         label += f" (epsilon={algo.epsilon})"
+    elif isinstance(algo, EpsilonGreedyDecay):
+        label += f" (rate={algo.decay_rate})"
     elif isinstance(algo, Softmax):
         label += f" (temp={algo.temp})"
     elif isinstance(algo, PreferenceGradient):
