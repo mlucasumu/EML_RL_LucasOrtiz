@@ -1,4 +1,3 @@
-import numpy as np
 from .base_learner import BaseLearner
 
 
@@ -8,7 +7,7 @@ class SARSA(BaseLearner):
         super().__init__(state_size, action_size)
         self.alpha = alpha # Tasa de aprendizaje
         self.gamma = gamma # Tasa de descuento
-        self.policy = policy # Política a optimizar (SARSA en on-oplicy )
+        self.policy = policy # Política a optimizar (SARSA en on-policy )
 
     def start_episode(self):
         return
