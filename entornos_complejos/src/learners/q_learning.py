@@ -14,9 +14,9 @@ class QLearning(BaseLearner):
 
     def step(self, state, action, reward, next_state, done):
         '''
-        Q(s,a) := Q(s,a) + alpha * [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
+        Q(s,a) := Q(s,a) + alpha * [R + gamma * max Q(s',a') - Q(s,a)]
         '''
-        future_q_value = (not done) * np.max(self.qtable[next_state, :])
+        future_q_value = (not done) * np.max(self.qtable[next_state, :]) # La siguiente acción es siempre la codiciosa
         delta = (
             reward
             + self.gamma * future_q_value
