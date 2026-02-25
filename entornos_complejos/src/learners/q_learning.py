@@ -1,5 +1,5 @@
 import numpy as np
-from base_learner import BaseLearner
+from .base_learner import BaseLearner
 
 
 class QLearning(BaseLearner):
@@ -22,7 +22,14 @@ class QLearning(BaseLearner):
             + self.gamma * future_q_value
             - self.qtable[state, action]
         )
-        self.qtable[state, action] += self.qtable[state, action] + self.alpha * delta
+        self.qtable[state, action] = self.qtable[state, action] + self.alpha * delta
+
+        # Loggear estadísticas
+        self.stats['cum_training_error'] += delta
 
     def end_episode(self):
         return
+    
+    def reset(self):
+        super().reset()
+        self.stats['cum_training_error'] = 0

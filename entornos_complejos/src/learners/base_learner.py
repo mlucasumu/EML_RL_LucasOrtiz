@@ -12,7 +12,7 @@ class BaseLearner(ABC):
     def __init__(self,  state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        self.qtable = np.zeros((self.state_size, self.action_size))
+        self.reset()
         
     @abstractmethod
     def start_episode(self):
@@ -34,3 +34,10 @@ class BaseLearner(ABC):
         Limpia estructuras de datos y realiza actualizaciones finales en caso de que sea necesario.
         '''
         pass
+
+    def reset(self):
+        '''
+        Resetea el algoritmo de aprendizaje para una nueva ejecución.
+        '''
+        self.qtable = np.zeros((self.state_size, self.action_size))
+        self.stats = {} # Estadísticas particulares de cada algoritmo (p.ej. training error en TD)
