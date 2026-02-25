@@ -53,8 +53,10 @@ class Agent:
             
             qtables[run] = self.learner.qtable
 
+        # Media de los resultados entre todas las runs
         rewards /= n_runs
         episode_lengths /= n_runs
         learner_stats = {k: v/n_runs for k,v in learner_stats.items()}
+        qtable = np.mean(qtables, axis=0)
 
-        return qtables, rewards, episode_lengths, learner_stats
+        return qtable, rewards, episode_lengths, learner_stats
