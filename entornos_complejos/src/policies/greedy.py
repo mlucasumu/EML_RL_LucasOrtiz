@@ -1,5 +1,5 @@
 import numpy as np
-from base_policy import BasePolicy
+from .base_policy import BasePolicy
 
 
 class GreedyPolicy(BasePolicy):

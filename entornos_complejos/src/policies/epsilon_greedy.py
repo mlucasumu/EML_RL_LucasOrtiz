@@ -1,10 +1,11 @@
 import numpy as np
-from base_policy import BasePolicy
+from .base_policy import BasePolicy
 
 
 class EpsilonGreedyPolicy(BasePolicy):
 
     def __init__(self, epsilon):
+        super().__init__()
         self.epsilon = epsilon
 
     def select_action(self, state, qtable):
