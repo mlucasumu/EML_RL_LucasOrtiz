@@ -3,7 +3,7 @@ from .base_learner import BaseLearner
 
 class ExpectedSARSA(BaseLearner):
 
-    def __init__(self,  state_size, action_size, alpha, gamma, policy):
+    def __init__(self, state_size, action_size, alpha, gamma, policy):
         super().__init__(state_size, action_size)
         self.alpha = alpha # Tasa de aprendizaje
         self.gamma = gamma # Tasa de descuento
