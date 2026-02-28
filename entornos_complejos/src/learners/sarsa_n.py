@@ -4,7 +4,7 @@ from .base_learner import BaseLearner
 
 class nStepSARSAonPolicy(BaseLearner):
 
-    def __init__(self,  state_size, action_size, alpha, gamma, policy, n):
+    def __init__(self, state_size, action_size, alpha, gamma, policy, n):
         super().__init__(state_size, action_size)
         self.alpha = alpha # Tasa de aprendizaje
         self.gamma = gamma # Tasa de descuento
@@ -36,14 +36,20 @@ class nStepSARSAonPolicy(BaseLearner):
             G += gamma * r
             gamma *= self.gamma
 
-        # bootstrap si no es terminal y tenemos n pasos completos
+        # Bootstrap si no es terminal y tenemos n pasos completos
         if not done and len(self.buffer) == self.n:
             next_action = self.policy.select_action(next_state, self.qtable) # tau = t - n + 1. Necesitamos el Q valor de tau + n = t + 1 -> siguiente acción
             G += gamma * self.qtable[next_state, next_action]
 
         s, a, _ = self.buffer.popleft() # Sacamos el primer elemento del buffer para actualizar su valor Q 
 
-        self.qtable[s, a] += self.alpha * (G - self.qtable[s, a])
+        delta = G - self.qtable[s, a]
+        self.qtable[s, a] += self.alpha * delta
+        self.stats['cum_training_error'] += delta
 
     def end_episode(self):
         self.buffer.clear()
+
+    def reset(self):
+        super().reset()
+        self.stats['cum_training_error'] = 0
