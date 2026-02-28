@@ -6,7 +6,7 @@ class MCOnPolicy(BaseLearner):
 
     def __init__(self, state_size, action_size, gamma, first_visit=False):
         super().__init__(state_size, action_size)
-        self.discount_factor = gamma
+        self.gamma = gamma
         self.n_visits = np.zeros([state_size, action_size])
         self.first_visit = first_visit
 
@@ -21,7 +21,7 @@ class MCOnPolicy(BaseLearner):
         not_visited = [(state, action) for state, action, reward in self.episode]
 
         for (state, action, reward) in reversed(self.episode):
-            G = reward + self.discount_factor * G
+            G = reward + self.gamma * G
 
             not_visited.pop()
             if self.first_visit and (state, action) in not_visited:
