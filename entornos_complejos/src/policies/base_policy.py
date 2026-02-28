@@ -3,6 +3,7 @@ La política decide qué acción tomar en cada paso.
 '''
 
 from abc import ABC, abstractmethod
+import numpy as np
 
 class BasePolicy(ABC):
 
@@ -23,3 +24,7 @@ class BasePolicy(ABC):
     def action_probability(self, state, action, qtable):
         probs = self.action_probabilities(state, qtable)
         return probs[action]
+    
+    def expected_value(self, state, qtable):
+        probs = self.action_probabilities(state, qtable)
+        return np.dot(probs, qtable[state])
