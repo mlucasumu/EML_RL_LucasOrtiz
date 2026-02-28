@@ -25,7 +25,7 @@ class QLearning(BaseLearner):
         self.qtable[state, action] = self.qtable[state, action] + self.alpha * delta
 
         # Loggear estadísticas
-        self.stats['cum_training_error'] += delta
+        self.stats['cum_training_error'] += abs(delta)
 
     def end_episode(self):
         return

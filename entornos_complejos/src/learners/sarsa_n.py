@@ -45,7 +45,7 @@ class nStepSARSAonPolicy(BaseLearner):
 
         delta = G - self.qtable[s, a]
         self.qtable[s, a] += self.alpha * delta
-        self.stats['cum_training_error'] += delta
+        self.stats['cum_training_error'] += abs(delta)
 
     def end_episode(self):
         self.buffer.clear()

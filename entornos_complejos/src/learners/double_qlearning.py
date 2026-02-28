@@ -40,7 +40,7 @@ class DoubleQLearning(BaseLearner):
         self.qtable[state, action] += self.alpha * delta # qtable es la suma de Q1 y Q2
 
         # Loggear estadísticas
-        self.stats['cum_training_error'] += delta
+        self.stats['cum_training_error'] += abs(delta)
 
     def end_episode(self):
         return

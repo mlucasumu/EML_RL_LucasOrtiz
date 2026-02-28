@@ -25,7 +25,7 @@ class MCOffPolicy(BaseLearner):
             self.C[state, action] += W # Actualizar el peso acumulado para S_t
             delta = G - self.qtable[state, action]
             self.qtable[state, action] += (W / self.C[state, action]) * delta
-            self.stats['cum_training_error'] += delta
+            self.stats['cum_training_error'] += abs(delta)
             # W <- W * pi(A_t|S_t) / b(A_t|S_t)
             # pi debe de ser greedy, asisque pi(a|s) = 1 if a == argmax Q(s,·), else 0
             greedy_action = np.argmax(self.qtable[state])

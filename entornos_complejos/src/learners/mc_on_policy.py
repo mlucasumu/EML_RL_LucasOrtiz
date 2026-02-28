@@ -29,9 +29,9 @@ class MCOnPolicy(BaseLearner):
 
             self.n_visits[state, action] += 1.0
             alpha = 1.0/self.n_visits[state,action]
-            td_error = G - self.qtable[state, action]
-            self.qtable[state,action] += alpha * td_error
-            self.stats['cum_training_error'] += td_error
+            delta = G - self.qtable[state, action]
+            self.qtable[state,action] += alpha * delta
+            self.stats['cum_training_error'] += abs(delta)
 
     def reset(self):
         super().reset()
