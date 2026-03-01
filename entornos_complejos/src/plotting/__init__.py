@@ -1,5 +1,17 @@
 # Importación de módulos o clases
-from .plotting import plot_rewards, plot_episode_lengths, plot_training_errors
+from .plotting import (
+    plot_rewards, 
+    plot_episode_lengths, 
+    plot_training_errors, 
+    plot_cumulative_training_errors,
+    plot_average_reward_per_alpha,
+    plot_average_episode_length_per_alpha
+)
 
 # Lista de módulos o clases públicas
-__all__ = ['plot_rewards', 'plot_episode_lengths', 'plot_training_errors']
+__all__ = ['plot_rewards', 
+           'plot_episode_lengths', 
+           'plot_training_errors', 
+           'plot_cumulative_training_errors',
+           'plot_average_reward_per_alpha',
+           'plot_average_episode_length_per_alpha']

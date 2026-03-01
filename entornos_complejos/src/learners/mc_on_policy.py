@@ -4,10 +4,11 @@ from .base_learner import BaseLearner
 
 class MCOnPolicy(BaseLearner):
 
-    def __init__(self, state_size, action_size, discount_factor):
+    def __init__(self, state_size, action_size, gamma, first_visit=False):
         super().__init__(state_size, action_size)
-        self.discount_factor = discount_factor
+        self.gamma = gamma
         self.n_visits = np.zeros([state_size, action_size])
+        self.first_visit = first_visit
 
     def start_episode(self):
         self.episode = []
@@ -17,14 +18,22 @@ class MCOnPolicy(BaseLearner):
 
     def end_episode(self):
         G = 0
+        not_visited = [(state, action) for state, action, reward in self.episode]
+
         for (state, action, reward) in reversed(self.episode):
-            G = reward + self.discount_factor * G
+            G = reward + self.gamma * G
+
+            not_visited.pop()
+            if self.first_visit and (state, action) in not_visited:
+                continue
+
             self.n_visits[state, action] += 1.0
             alpha = 1.0/self.n_visits[state,action]
-            td_error = G - self.qtable[state, action]
-            self.qtable[state,action] += alpha * td_error
-            self.stats['cum_training_error'] += td_error
+            delta = G - self.qtable[state, action]
+            self.qtable[state,action] += alpha * delta
+            self.stats['cum_training_error'] += abs(delta)
 
     def reset(self):
         super().reset()
         self.stats['cum_training_error'] = 0
+        self.n_visits = np.zeros([self.state_size, self.action_size])

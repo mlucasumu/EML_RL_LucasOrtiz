@@ -4,7 +4,7 @@ from .base_learner import BaseLearner
 
 class QLearning(BaseLearner):
 
-    def __init__(self,  state_size, action_size, alpha, gamma):
+    def __init__(self, state_size, action_size, alpha, gamma):
         super().__init__(state_size, action_size)
         self.alpha = alpha # Tasa de aprendizaje
         self.gamma = gamma # Tasa de descuento
@@ -25,7 +25,7 @@ class QLearning(BaseLearner):
         self.qtable[state, action] = self.qtable[state, action] + self.alpha * delta
 
         # Loggear estadísticas
-        self.stats['cum_training_error'] += delta
+        self.stats['cum_training_error'] += abs(delta)
 
     def end_episode(self):
         return

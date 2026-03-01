@@ -9,7 +9,7 @@ import numpy as np
 
 class BaseLearner(ABC):
 
-    def __init__(self,  state_size, action_size):
+    def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
         self.reset()
