@@ -10,9 +10,9 @@ class DoubleQLearning(BaseLearner):
         self.gamma = gamma # Tasa de descuento
         self.turn = 1 # Qué tabla toca actualizar
 
-    #@property
-    #def qtable(self):
-    #    return self.Q1 + self.Q2
+    @property
+    def qtable(self):
+        return self.Q1 + self.Q2
 
     def start_episode(self):
         return
@@ -37,8 +37,6 @@ class DoubleQLearning(BaseLearner):
             self.Q2[state, action] += self.alpha * delta
             self.turn = 1
 
-        self.qtable[state, action] += self.alpha * delta # qtable es la suma de Q1 y Q2
-
         # Loggear estadísticas
         self.stats['cum_training_error'] += abs(delta)
 
@@ -46,7 +44,7 @@ class DoubleQLearning(BaseLearner):
         return
     
     def reset(self):
-        super().reset()
         self.Q1 = np.zeros((self.state_size, self.action_size))
         self.Q2 = np.zeros((self.state_size, self.action_size))
+        self.stats = {}
         self.stats['cum_training_error'] = 0
