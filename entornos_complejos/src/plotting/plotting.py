@@ -261,3 +261,23 @@ def plot_average_episode_length_per_alpha(metrics_per_alpha_per_learner:dict[dic
                                   title='Promedio de longitudes',
                                   y_label='Longitud promedio',
                                   log_scale=log_scale)
+    
+def plot_average_cum_error_per_alpha(metrics_per_alpha_per_learner:dict[dict], last_episodes_ratio:float, log_scale:bool):
+    plot_average_metric_per_alpha(metrics_per_alpha_per_learner,
+                                  metric_key='cum_errors',
+                                  last_episodes_ratio=last_episodes_ratio,
+                                  title='Promedio de errores acumulados',
+                                  y_label='Error acumulado promedio',
+                                  log_scale=log_scale)
+    
+def plot_average_error_per_alpha(metrics_per_alpha_per_learner:dict[dict], last_episodes_ratio:float, log_scale:bool):
+    for alpha in metrics_per_alpha_per_learner.keys():
+        for algo in metrics_per_alpha_per_learner[alpha].keys():
+            error_no_acum = undo_cumsum(metrics_per_alpha_per_learner[alpha][algo]['cum_errors'])
+            metrics_per_alpha_per_learner[alpha][algo]['errors'] = np.array(error_no_acum)
+    plot_average_metric_per_alpha(metrics_per_alpha_per_learner,
+                                  metric_key='errors',
+                                  last_episodes_ratio=last_episodes_ratio,
+                                  title='Promedio de errores de entrenamiento',
+                                  y_label='Error de entrenamiento promedio',
+                                  log_scale=log_scale)
