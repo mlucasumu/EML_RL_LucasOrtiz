@@ -25,19 +25,16 @@ class SARSASemiGradient(BaseLearner):
         policy      : Policy - política utilizada para seleccionar acciones
         feature_fn  : callable - función diferenciable como aproximador
         """
-        super().__init__(state_size, action_size)
         self.alpha = alpha
         self.gamma = gamma
         self.policy = policy
-
+        self.d = state_size
         self.feature_fn = feature_fn
-        # Inferimos la dimensionalidad de los pesos con una simple llamada
-        sample_feat = feature_fn(0, 0)
-        d = len(sample_feat)
 
         # Inicializamos el vector de pesos w € R^d (zeros -> q_hat empieza en 0)
-        self.w = np.zeros(d)
-        self.d = d
+        self.w = np.zeros(self.d)
+        self.d = self.d
+        super().__init__(state_size, action_size)
 
     def q_hat(self, state, action):
         """Aproximación acción-valor: q_hat(s, a, w) = w · x(s, a)"""

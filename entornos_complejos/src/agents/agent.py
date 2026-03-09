@@ -22,6 +22,12 @@ class Agent:
         qtables = np.zeros((n_runs, self.learner.state_size, self.learner.action_size))
         learner_stats = {k: np.zeros(num_episodes) for k,v in self.learner.stats.items()}
 
+        is_approx = hasattr(self.learner, 'w') # NUEVO: almacenamiento (pesos w ó qtable)
+        if is_approx:
+            qtables = np.zeros((n_runs, self.learner.d))
+        else:
+            qtables = np.zeros((n_runs, self.learner.state_size, self.learner.action_size))
+
         np.random.seed(seed=seed)
 
         for run in tqdm(range(n_runs)): 
@@ -36,7 +42,14 @@ class Agent:
                 done = False
 
                 while not done:
-                    action = self.policy.select_action(state, self.learner.qtable) # Seleccionar acción en base a política
+                    if is_approx: # NUEVO
+                        q_vals = self.learner.q_values(state)  # aproximador lineal
+                    else:
+                        q_vals = self.learner.qtable[state]     # tabla discreta clásica
+                    
+                    #action = self.policy.select_action(state, self.learner.qtable) # Seleccionar acción en base a política
+                    action = self.policy.select_action(state, q_vals)
+
                     next_state, reward, terminated, truncated, _ = self.env.step(action) # Tomar acción y transitar a nuevo estado
                     done = terminated or truncated
 
@@ -50,8 +63,11 @@ class Agent:
                 self.learner.end_episode() # Avisar al algoritmo de aprendizaje de que el episodio ha acabado (necesario en Monte Carlo, p.ej.)
                 for stat in learner_stats.keys():
                     learner_stats[stat][ep] += self.learner.stats[stat]
-            
-            qtables[run] = self.learner.qtable
+            if is_approx: # NUEVO 
+                qtables[run] = self.learner.w
+            else:
+                qtables[run] = self.learner.qtable
+            #qtables[run] = self.learner.qtable
 
         # Media de los resultados entre todas las runs
         rewards /= n_runs
