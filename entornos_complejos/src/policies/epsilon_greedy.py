@@ -19,7 +19,12 @@ class EpsilonGreedyPolicy(BasePolicy):
         return action
     """
 
-    def select_action(self, state, q_vals):
+    def select_action(self, state, qvalues):
+        # Distinguir si me pasan la tabla entera o solo la fila de la acción
+        if len(np.shape(qvalues)) > 1:
+            q_vals = qvalues[state]
+        else:
+            q_vals = qvalues
         n_actions = len(q_vals)
 
         if np.random.random() < self.epsilon:  # Exploración
