@@ -2,34 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import random
-from collections import deque
 
 #from .q_network import QNetwork
 from .base_learner import BaseLearner
-
-
-class ReplayMemory:
-    """
-    Memoria de repetición (Experience Replay) de capacidad N.
-    Almacena transiciones (phi_t, a_t, r_t, phi_{t+1}, done) y permite
-    muestrear minibatches de forma aleatoria para romper correlaciones temporales.
-    """
-
-    def __init__(self, capacity):
-        # Usamos deque con maxlen para descartar automáticamente las transiciones más antiguas
-        self.memory = deque(maxlen=capacity)
-
-    def push(self, state, action, reward, next_state, done):
-        """Almacena una nueva transición en la memoria."""
-        self.memory.append((state, action, reward, next_state, done))
-
-    def sample(self, batch_size):
-        """Devuelve un minibatch aleatorio de transiciones."""
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
+from .replay_memory import ReplayMemory
 
 
 class DQNLearner(BaseLearner):
@@ -117,11 +93,9 @@ class DQNLearner(BaseLearner):
         self._update_w()
 
     def start_episode(self):
-        """Llamado al inicio de cada episodio. No se necesita acción especial en DQN."""
         return
 
     def end_episode(self):
-        """Llamado al final de cada episodio. No se necesita acción especial en DQN."""
         return
 
     def step(self, state, action, reward, next_state, done):
