@@ -1,0 +1,216 @@
+\chapter{Aprendizaje en Entornos Complejos}
+
+\section{Introducción}
+
+\subsection{Breve descripción del problema y su relevancia}
+El Aprendizaje por Refuerzo (RL) en entornos complejos modela problemas secuenciales de toma de decisiones donde un agente interactúa de forma activa con un ecosistema dinámico temporal. A diferencia de escenarios estocásticos simples y puramente exploratorios (como el bandido multibrazo), en estos entornos el estado del sistema cambia iterativamente como consecuencia directa de las acciones ejecutadas, formalizándose matemáticamente a través del Proceso de Decisión de Markov (MDP). La resolución de estos problemas mediante métodos tabulares es de suma relevancia, dado que cimienta las bases analíticas del control óptimo para escenarios discretos y finitos, trazando el camino fundamental hacia algoritmos de inteligencia artificial más robustos e independientes del modelo.
+
+\subsection{Motivación del trabajo: ¿Por qué es importante el problema estudiado?}
+La motivación de este proyecto radica en la necesidad de diseñar agentes autónomos capaces de converger hacia políticas de control óptimas "a ciegas", presumiendo una ignorancia total respecto a las dinámicas probabilísticas de transición ($\mathcal{P}$) y del modelo subyacente de recompensas ($\mathcal{R}$). En los problemas físicos realistas, aplicar técnicas basadas en Programación Dinámica (PD) perfecta de Bellman para resolver estos MDPs es computacionalmente inútil por la falta del modelo de entorno. Analizar cómo interactúan empíricamente familias algorítmicas de \textit{bootstrapping} de un paso (Diferencias Temporales) y evaluaciones completas de episodios (Monte Carlo) resulta imprescindible para interiorizar la gestión del riesgo de la exploración aleatoria $\epsilon$-Greedy frente a opciones que nos conduzcan a soluciones no satisfactorias.
+
+\subsection{Objetivos del informe: ¿Qué se pretende lograr con el desarrollo del trabajo?}
+Los objetivos que se persiguen con este desarrollo algorítmico son los siguientes:
+\begin{enumerate}
+    \item Diseñar e implementar computacionalmente desde cero el estado del arte de las familias algorítmicas de control discreto de aprendizaje tabular iterativo (Monte Carlo, SARSA, Q-learning, Expected SARSA, Doble Q-Learning y variantes de $n$-pasos).
+    \item Construir una arquitectura evaluativa agnóstica soportada en la librería de simulación física estandarizada Gymnasium, empleando mapas orientados al estrés y sensibilidad de castigos de agentes (\textit{CliffWalking-v0}).
+    \item Someter los modelos a una batería de pruebas, visualizando analíticamente sus fluctuaciones de convergencia paramétrica (tasas de aprendizaje $\alpha$, factores $\gamma$, $\epsilon$), estabilidad poblacional de recompensas y topología de aprendizaje frente a varianzas y sesgos estocásticos de maximización.
+    \item Demostrar empíricamente las fronteras matemáticas y la maldición de la dimensionalidad intrínsecas a las tablas espaciales determinísticas $\mathbf{Q} \in \mathbb{R}^{|\mathcal{S}| \times |\mathcal{A}|}$.
+\end{enumerate}
+
+\subsection{Organización del documento}
+Este apartado se estructura sistemáticamente acorde a la siguiente distribución: la Sección 2.2 aborda el marco teórico, desarrollo formal del problema y la vinculación contextual con trabajos literarios relacionados en materia estocástica tabular. En la Sección 2.3, se exhiben en profundidad los paradigmas algorítmicos y sus reglas métricas de actualización. Posteriormente, la Sección 2.4 documenta de manera meticulosa el ecosistema de configuración experimental y disecciona gráficamente las comparativas de resultados cosechadas al estresar las rutinas propuestas. Para finalizar, la Sección 2.5 cristaliza las reflexiones concluyentes derivadas del desempeño, sus ineludibles limitaciones topológicas y las sendas futuras de adaptación hacia aproximadores funcionales con gradientes.
+
+\section{Desarrollo}
+
+\subsection{Definición formal del problema}
+El núcleo central abordado consiste en la optimización de políticas de control en escenarios bajo incertidumbre, modelado formalmente de forma canónica mediante un Proceso de Decisión de Markov (MDP). Un MDP finito queda univocamente estipulado por la tupla matemática $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$, donde:
+\begin{itemize}
+    \item $\mathcal{S}$ define el conjunto discreto y finito de estados.
+    \item $\mathcal{A}$ define el conjunto discreto de acciones permitidas.
+    \item $\mathcal{P}(s' \mid s, a)$ delimita formalmente la probabilidad de transición estocástica hacia un estado subsecuente $s' \in \mathcal{S}$ habiendo tomado la acción $a \in \mathcal{A}$ sobre el estado de partida $s \in \mathcal{S}$.
+    \item $\mathcal{R}(s, a, s')$ representa la función formal de la recompensa inmediata obtenida en dicha transición.
+    \item $\gamma \in [0, 1]$ establece analíticamente el factor de descuento temporal que pondera la relevancia de los retornos futuros.
+\end{itemize}
+
+El desafío resuelto se contextualiza bajo la condición del control óptimo empírico: el agente carece de un modelo dinámico \textit{white-box}, ignorando totalmente $\mathcal{P}$ y $\mathcal{R}$. En contraste empírico frontal contra las metodologías de Programación Dinámica que asumen la resolución exacta sobre las Ecuaciones de Bellman, este trabajo exige destilar una matriz de política óptima $\pi_*$ operando a ciegas sobre las recompensas interactivas puras que brinda la librería estandarizada \textit{Gymnasium}. En nuestro enfoque de aplicación específico, el espacio queda materializado sobre el grid topográfico 4x12 \textit{CliffWalking}, parametrizando interacciones que buscan la ruta ideal que salvaguarde de un castigo latente catastrófico $R = -100$, es decir, el agente en su movimiento en la cuadrícula debe aprender a navegar por el grid sin caer al precipicio. 
+
+\subsection{Contexto y antecedentes necesarios}
+Para asimilar el marco tabular implementado es necesario comprender el desacoplo matricial de la función de valor asintótico. Los métodos tabulares descartan la regresión funcional asumiendo un precondicionamiento dimensional finito, en el que la calidad del par estado-acción se aloja de forma bidireccional sobre la memoria en ubicaciones explícitas de una matriz o diccionario analítico $\mathbf{Q} \in \mathbb{R}^{|\mathcal{S}| \times |\mathcal{A}|}$.
+Este proyecto subyace bajo la transición directa hereditaria del problema del bandido multibrazo estático hacia el modelado temporal dinámico. Aquel primer entorno forjó empíricamente el dilema subyacente de la "Exploración frente a Explotación", asimilando políticas iniciales de decisión como el esquema $\epsilon$-Greedy:
+
+\begin{equation}
+\pi(a \mid s) = 
+\begin{cases} 
+1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|} & \text{si } a = \arg\max_{a'} Q(s, a') \\
+\frac{\epsilon}{|\mathcal{A}|} & \text{en caso contrario}
+\end{cases}
+\end{equation}
+
+En la presente resolución modular, heredamos el control probabilístico pero escalado recursivamente: mientras el entorno cambia su propia semilla aleatoria iterativamente dictaminando un estado secuencial nuevo, la matriz de valores no persigue una esperanza estacionaria del entorno unidimensional, sino un mapeo interactivo multidimensional retro-propagado (\textit{bootstrapping}) con respecto a estimaciones de estados futuros.
+
+\subsection{Explicación de los métodos utilizados y enfoques existentes}
+La aproximación técnica empleada pivota sobre la disección de dos grandes familias algorítmicas canónicas en el ecosistema tabular de RL:
+
+\begin{enumerate}
+    \item \textbf{Iteración Exhaustiva Episódica (Monte Carlo):} El agente juega una partida completa desde el principio hasta alcanzar un estado final (victoria o derrota), acumulando la suma de recompensas total obtenida ($G_t$). Solo cuando el episodio termina, el algoritmo revisa la partida jugada y actualiza su memoria $\mathbf{Q}$ promediando los resultados de sus acciones. Aunque matemáticamente este método garantiza encontrar la solución óptima a largo plazo sin sesgos, presenta el gran inconveniente de ser muy inestable (alta varianza) en entornos donde un error mínimo conlleva un castigo catastrófico.
+    \item \textbf{Diferencias Temporales o \textit{Bootstrapping} Unipaso (TD):} Estos algoritmos no necesitan esperar a que finalice la partida completa para aprender. En lugar de ello, corrigen su memoria paso a paso apoyándose en sus propias intuiciones sobre el futuro inmediato (lo que se conoce como bootstrapping). Valoran cada acción tomada actualizando sus creencias basándose en la predicción de lo que ocurrirá en el siguiente estado, aprendiendo sobre la marcha. Estos métodos constituyen el núcleo motriz del proyecto (englobando implementaciones como Q-learning, SARSA y Double Q-learning).
+\end{enumerate}
+
+\subsection{Justificación: Diferenciación y mejora frente a enfoques previos}
+El enfoque de este trabajo representa una mejora arquitectónica frente a otras implementaciones básicas. Habitualmente, el código del entorno (el mapa) y el algoritmo de aprendizaje (el cerebro) suelen estar entrelazados de forma inflexible. En nuestro proyecto, hemos construido una arquitectura modular donde el Agente, el Algoritmo (Learner) y el Entorno (Gymnasium) están totalmente separados. Gracias a este diseño, podemos evaluar exactamente el mismo modelo matemático tanto en el entorno del acantilado (\textit{CliffWalking}) como en el del lago helado (\textit{FrozenLake}) sin reescribir su lógica interna. Además, nuestra evaluación va un paso más allá de la simple recolección de puntos: analizamos específicamente cómo cada algoritmo gestiona el riesgo de caer en trampas fatales frente a su ambición ciega por encontrar la meta rápida.
+
+\subsection{Trabajos Relacionados}
+La formalización analítica de los procesos de decisión y sus métodos tabulares subyacentes se apoya sobre los axiomas establecidos en la literatura por C. Watkins de Cambridge, quien introdujo el algoritmo empírico desacoplado de \textit{Q-learning} \cite{Watkins1989}, probando que una actualización puramente \textit{Off-Policy} convergía formalmente hacia la ruta iterativa de la matriz óptima $\mathbf{Q_*}$ asumiendo visitaciones matemáticas al infinito.
+La familia \textit{On-Policy} análoga descrita formalmente bajo el acrónimo SARSA (\textit{State-Action-Reward-State-Action}) fue canonizada empíricamente a la par demostrando las diferencias vitales derivadas por asimilar estocásticamente su propia regla exploratoria.
+
+La evolución conceptual de los métodos clásicos tabulares, en especial el fenómeno estadístico del \textit{Maximization Bias} propio de heurísticas puramente deterministas orientadas al $\max_{a}$, propició directamente la publicación de Hado van Hasselt en NeurIPS \cite{Hasselt2010DD}, forjando por primera vez la escisión analítica ortogonal del predictor en el sistema denominado \textit{Double Q-Learning}.
+Todo este marco conceptual, que abarca desde el método de Monte Carlo hasta el aprendizaje temporal de $n$-pasos, se encuentra recopilado y unificado en el texto de referencia clásico de Sutton y Barto \cite{Sutton1998}, el cual sirve como base metodológica principal para el desarrollo de este trabajo.
+
+\section{Algoritmos}
+
+\subsection{Justificación y aplicabilidad al problema}
+Para abordar secuencialmente el control empírico del agente sin modelo de transiciones, la selección algorítmica se fundamenta de forma irrenunciable sobre la familia central iterativa de las Diferencias Temporales (TD). Su principal virtud y aplicabilidad intrínseca en problemas físicos y de gridworlds recae teóricamente sobre el \textit{bootstrapping}: corrigen la predicción espacial subyacente de su estado respaldándose iterativamente sobre la predicción del estado adyacente secuencial inmediato. La justificación de implementar \textit{On-policy} y \textit{Off-policy} como contrapartes recae sobre el análisis empírico profundo de la "gestión del riesgo codicioso", puesto que el mismo agente puede transmutar entre una deambulación que evita los acantilados (SARSA) u optimizaciones idealizadas del camino mínimo (Q-learning). 
+
+En el proceso experimental computacional, la interacción abstracta de \texttt{gymnasium} provee la tupla estriada $(S, A, R, S')$, la cual recae directamente sobre un objeto instanciado de la clase base algorítmica \texttt{BaseLearner}. Este motor interno dispara lógicamente una actualización $\delta_t$ ponderada empíricamente por el ratio del factor de aprendizaje $\alpha$.  A continuación, expondremos el detalle formal de las dos resoluciones analíticas que dominan comparativamente este trabajo.
+
+\subsection{Explicación detallada y formulación de pseudocódigos}
+
+\subsubsection{1. Q-Learning (Off-Policy TD Control)}
+Propuesto bajo el marco \textit{Off-Policy}, la principal característica del Q-Learning es que \textbf{disocia el comportamiento del aprendizaje}. Mientras que el agente explora el entorno siguiendo una política semi-aleatoria para descubrir el mapa (típicamente $\epsilon$-greedy), a la hora de actualizar su memoria ignora por completo esa aleatoriedad. Para valorar si un estado es bueno, evalúa la mejor acción posible desde ese punto ($\max_a Q(S', a)$); es decir, el algoritmo es optimista y asume que a partir del siguiente paso el agente dejará de explorar al azar y siempre tomará la ruta absolutamente perfecta.
+
+\begin{algorithm}[H]
+\caption{Q-Learning: Control Off-Policy \cite{Watkins1989}}
+\label{alg:qlearning}
+\begin{algorithmic}[1]
+\Require Tasa de aprendizaje $\alpha \in (0, 1]$, decaimiento temporal $\gamma \in (0, 1]$, ratio exploratorio $\epsilon > 0$
+\Ensure Función óptima convergente $\mathbf{Q} \approx q_*$
+\State Inicializar arbitrariamente $\mathbf{Q}(s, a) \in \mathbb{R}$ parar todo $s \in \mathcal{S}, a \in \mathcal{A}$
+\State Inicializar $\mathbf{Q}(terminal, \cdot) = 0$
+\For{cada episodio de simulación}
+    \State Obtener vector de estado semilla $S$ de \texttt{env.reset()}
+    \While{$S$ no represente un caso terminal}
+        \State Seleccionar vector lógico de acción $A$ desde $S$ aplicando política derivada $A \leftarrow \pi_{\epsilon\text{-greedy}}(S; \mathbf{Q})$
+        \State Aplicar computacionalmente \texttt{env.step(A)} observando recompensa $R$ y el próximo estado $S'$
+        \State Calcular el error temporal \textit{Off-Policy}: 
+        \State $\delta \leftarrow R + \gamma \max_{a} \mathbf{Q}(S', a) - \mathbf{Q}(S, A)$
+        \State Actualizar matriz in-place:
+        \State $\mathbf{Q}(S, A) \leftarrow \mathbf{Q}(S, A) + \alpha \cdot \delta$
+        \State Reasignar bucle temporal $S \leftarrow S'$
+    \EndWhile
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{2. Expected SARSA (On-Policy Híbrido)}
+Es considerada una generalización híbrida de la variante pura estocástica uniendo conceptos teóricos deterministas. El operador en el punto destino evita fijarse aleatoriamente tanto en la siguiente acción dictaminada (SARSA estándar $\mathbf{Q}(S', A')$) como utópicamente en la de valor supremo absoluto (\textit{Q-learning}). Esta rutina estabiliza la varianza computando analíticamente la esperanza condicional (valor esperado probabilístico) proyectado sobre todas las acciones permisibles, moderando bruscamente el \textit{shock} provocado frente a castigos colindantes estocásticos en cuadrículas adyacentes a precipicios.
+
+\begin{algorithm}[H]
+\caption{Expected SARSA}
+\label{alg:expected_sarsa}
+\begin{algorithmic}[1]
+\Require Parámetros de actualización $\alpha$, $\gamma$ y ratio $\epsilon$ parametrizable
+\Ensure Aproximación funcional de la ruta estable
+\State Inicializar aleatoriamente tensor estructural $\mathbf{Q}(s, a)$
+\For{cada interación del límite episódico}
+    \State Interrogar estado empírico inicial $S$
+    \While{$S$ sea un estado transitable}
+        \State Extraer iteradora de control $A$ dada por $\pi_{\epsilon\text{-greedy}}(S; \mathbf{Q})$
+        \State Interactuar físicamente y recuperar $R, S'$
+        \State Calcular la ponderación esperada $\mathbb{E}_{\pi}$ como Esperanza Predictiva:
+        \State $\text{Valor Esperado} \leftarrow \sum_{a} \pi(a \mid S') \cdot \mathbf{Q}(S', a)$
+        \State Integrar retrospectivamente el error unipasos temporal:
+        \State $\mathbf{Q}(S, A) \leftarrow \mathbf{Q}(S, A) + \alpha \big[ R + \gamma (\text{Valor Esperado}) - \mathbf{Q}(S, A) \big]$
+        \State Traspasar variables $S \leftarrow S'$
+    \EndWhile
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{Evaluación y Experimentos}
+
+\subsection{Configuración experimental y herramientas}
+Para poner a prueba nuestros algoritmos en la práctica, hemos utilizado la librería estándar de simulación \textbf{Gymnasium} (la evolución de OpenAI Gym). Esta herramienta se encarga de gestionar toda la física y las reglas del entorno (el MDP), obligando al agente a aprender basándose únicamente en el número de la casilla en la que se encuentra y los puntos (premios o castigos) que recibe en cada paso.
+Para evaluar los algoritmos bajo presión, hemos utilizado el mapa clásico llamado \textit{CliffWalking-v0}. Este entorno es una cuadrícula (\textit{grid}) de 4 filas por 12 columnas. El objetivo del agente es ir desde la esquina inferior izquierda (coordenada 3, 0) hasta la esquina inferior derecha (meta en 3, 11). Dar un paso normal en cualquier dirección le cuesta -1 punto (lo que le empuja a buscar el camino más corto). Sin embargo, si da un mal paso y cae por el acantilado (la fila inferior), recibe un castigo masivo de -100 puntos y vuelve a la casilla de salida. Esta mezcla entre buscar la ruta rápida y el peligro extremo de caerse hace que este mapa sea perfecto para evaluar si un algoritmo es arriesgado o conservador.
+
+Para asegurar que todos los experimentos sean reproducibles y comparables de forma justa, hemos fijado la semilla aleatoria (\textit{seeding}) en las librerías \texttt{numpy} y \texttt{gymnasium} durante todas las ejecuciones. Además, salvo que se especifique lo contrario en algún experimento concreto, los parámetros de configuración (hiperparámetros) por defecto utilizados son los siguientes: un factor de descuento $\gamma = 0.95$, una tasa de aprendizaje $\alpha = 0.5$, y un límite máximo de 1000 pasos por episodio para evitar que el agente se quede atrapado en bucles infinitos. Finalmente, para obtener resultados estadísticos robustos, las medias y gráficas se han calculado simulando bloques de 400 episodios.
+
+\subsection{Métricas de Evaluación}
+El control analítico se realiza mediante una tripleta de métricas diseñadas ad-hoc en el módulo \texttt{plotting.py}:
+\begin{enumerate}
+    \item \textbf{Recompensa Total Promediada ($ \mathbb{E}[G_t] $):} Se representa mediante un filtro paso-bajo algorítmico (\textit{rolling window cross-average}) para discernir las trayectorias de optimización purgadas del ruido intrínseco de $\epsilon$.
+    \item \textbf{Longitud Temporal del Episodio ($|t|$):} Evidencia visual de la disipación estocástica, sirviendo como proxy estadístico para identificar cuándo un agente ha producido una política estacionaria sin paseos erráticos.
+    \item \textbf{Varianza y Error de Entrenamiento Absoluto Aislado ($ \sum \mid\delta_t\mid $):} Testea la fluctuación interna inestable de una formulación temporal mal parametrizada o incapaz de estabilizar el tensor $\mathbf{Q}(s,a)$.
+\end{enumerate}
+
+\subsection{Resultados obtenidos y Análisis Crítico Comparativo}
+
+\subsubsection{Off-Policy frente a On-Policy (Agresividad vs Conservadurismo)}
+Al someter ambos algoritmos al mapa \textit{CliffWalking}, se hace evidente la diferencia de diseño descrita teóricamente por Sutton \cite{Sutton1998}. El algoritmo \textit{Q-Learning} es mucho más agresivo e inestable: aprende a caminar pegado al borde del acantilado porque asume de forma optimista que siempre tomará el mejor camino posible. En la práctica, esto hace que cuando la exploración aleatoria ($\epsilon=0.1$) le hace dar un paso al azar, caiga frecuentemente al vacío y sea gravemente penalizado.
+Por el contrario, \textit{SARSA} aprende una ruta menos perfecta acercándose a la meta, pero asume esos errores durante el aprendizaje y opta por trazar un camino más largo pero mucho más seguro y alejado del precipicio.
+
+El análisis de recompensas estables (promedio de convergencia sobre los últimos 50 episodios) lo ilustra numéricamente, exhibiendo que un enfoque \textit{On-Policy} castiga estadísticamente menos en interacciones crudas.
+\begin{itemize}
+    \item \textbf{Media Q-Learning}: $\approx -55.90$ iteraciones ponderadas de castigo.
+    \item \textbf{Media SARSA}: $\approx -26.59$ iteraciones ponderadas de castigo.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{entornos_complejos/img/plot_0.png}
+    \caption{Recompensas Promedio: SARSA vs Q-Learning}
+    \label{fig:sarsa_vs_q_rewards}
+\end{figure}
+
+Si nos fijamos en la ruta final que cada algoritmo decide tomar en el mapa (la política aprendida tras evaluar todas las opciones de la matriz $\mathbf{Q_*}$), podemos ver claramente cómo esas diferencias de diseño que acabamos de explicar se traducen en la práctica:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{cc}
+\includegraphics[width=0.45\columnwidth]{entornos_complejos/img/plot_2.png} & \includegraphics[width=0.45\columnwidth]{entornos_complejos/img/plot_3.png} \\
+\textbf{A: Ruta codiciosa Q-Learning} & \textbf{B: Ruta conservadora SARSA} \\
+\end{tabular}
+\caption{Sobreexposición topológica de la política Greedy final aprendida en CliffWalker.}
+\end{table}
+
+\subsubsection{Escalado del Ratio de Aprendizaje y Robustez Analítica}
+Un análisis posterior, en el que fuimos subiendo la tasa de aprendizaje ($\alpha$ de 0.1 hasta 0.9), terminó de confirmar la superioridad del método \textit{Expected SARSA}. Al basarse en promedios y no depender de tener buena suerte al explorar, resulta mucho más estable.
+Si forzamos el cerebro del agente exigiéndole aprender demasiado rápido (subiendo $\alpha = 0.9$), el algoritmo SARSA tradicional se rompe y empieza a cometer errores catastróficos perdiendo hasta $\approx -200$ puntos. Por el contrario, \textit{Expected SARSA} resiste perfectamente este estrés, amortiguando los saltos y manteniéndose estable en apenas $\approx -15$ puntos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{entornos_complejos/img/plot_9.png}
+    \caption{Sensibilidad paramétrica $\alpha$ en variantes SARSA}
+    \label{fig:sarsa_alpha_sensitivity}
+\end{figure}
+
+\subsubsection{Solución al problema del optimismo excesivo (Maximization Bias)}
+Al evaluar el algoritmo \textit{Double Q-Learning} propuesto por van Hasselt \cite{Hasselt2010DD}, observamos que el agente desdobla su cerebro en dos memorias separadas $(\mathbf{Q}_1, \mathbf{Q}_2)$. Esto le permite evitar el principal defecto del Q-Learning normal: la tendencia a sobrevalorar rutas que parecen buenas al principio pero que en realidad son trampas mortales.
+Sin embargo, en la práctica, forzar al agente a mantener dos memorias separadas hace que su aprendizaje inicial sea desesperantemente lento. Si mantenemos una exploración fija (como $\epsilon=0.1$), el agente necesita jugar más de 8000 pasos para empezar a aclararse y converger. Para solucionar este enorme retraso, tuvimos que aplicarle una estrategia dinámica: programar al agente para que al principio explore muchísimo y vaya reduciendo esa exploración poco a poco (un $\epsilon_{decay}$ durante los primeros 23000 pasos de simulación). Con este "truco", el agente consigue lo mejor de ambos mundos: aprende tan rápido como el Q-Learning tradicional, pero manteniendo la seguridad de no dejarse engañar por falsos caminos prometedores.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{entornos_complejos/img/plot_17.png}
+    \caption{Estabilización de Double Q-Learning usando exploraciones tipo Decay}
+    \label{fig:double_q_learning}
+\end{figure}
+
+\subsubsection{La ineficacia práctica de Monte Carlo en entornos de peligro}
+Nuestros experimentos demuestran el enorme retraso de aprendizaje que sufren los algoritmos que esperan al final de la partida para aprender (Monte Carlo) frente a los que aprenden paso a paso (Diferencias Temporales). Durante sus primeras 200 partidas exploratorias, \textit{Monte Carlo On-Policy} arrastra un error gravísimo: tarda más de 900 pasos intermedios en acabar cada partida porque es incapaz de sacar conclusiones sobre los castigos que recibe hasta que no alcanza un estado final y reinicia. Por tanto, su uso resulta totalmente ineficaz en mapas de tipo \textit{GridWorld} donde abundan las penalizaciones severas, demostrando que aprender paso a paso es una estrategia muy superior.
+
+\section{Conclusiones}
+
+\subsection{Resumen de los principales resultados obtenidos}
+A lo largo de este proyecto, hemos comprobado que los métodos tabulares son muy efectivos para resolver problemas de control discreto estocástico en entornos con estados y acciones finitas. Las pruebas realizadas en el entorno \textit{CliffWalking} han demostrado la diferencia de comportamientos dentro de la familia de algoritmos que aprenden paso a paso (Diferencias Temporales). Por un lado, \textit{Q-Learning} es el más rápido descubriendo el trayecto más corto, pero en la práctica acaba sufriendo graves penalizaciones porque, debido a su excesivo optimismo matemático (\textit{Maximization Bias}) y a los pasos estocásticos dados al azar en la exploración, cae demasiadas veces por el acantilado.
+
+En contraste, \textit{Expected SARSA} ha demostrado ser el algoritmo más seguro y equilibrado. Al calcular los siguientes pasos basándose en promedios y probabilidades $\mathbb{E}[Q(s', a)]$, consiguió eliminar las peligrosas oscilaciones que sufría el \textit{SARSA} tradicional cuando le forzábamos a aprender demasiado deprisa (aumentando su tasa de aprendizaje $\alpha$). Por su parte, los algoritmos clásicos como \textit{Monte Carlo}, que necesitan esperar al final de la partida para sacar conclusiones, demostraron ser demasiado lentos y en la práctica totalmente inútiles para mapas tan castigadores y peligrosos.
+
+\subsection{Limitaciones del estudio}
+A pesar de que estos algoritmos funcionan bien cuando el problema es pequeño, tienen un límite técnico insalvable. El problema fundamental es de memoria de ordenador: los algoritmos tabulares obligan a crear una enorme tabla o matriz interactiva ($\mathbf{Q} \in \mathbb{R}^{|\mathcal{S}| \times |\mathcal{A}|}$) donde deben guardar de antemano todas las combinaciones posibles de "estado y acción". Si usáramos estos algoritmos en un videojuego moderno donde las variables son infinitas, la memoria RAM colapsaría al instante. Esto es conocido en la Inteligencia Artificial como la "Maldición de la Dimensionalidad" (\textit{The Curse of Dimensionality}).
+Además, en este proyecto hemos asumido que las reglas del tablero son siempre fijas y estáticas $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$, dejando de lado los cambios imprevistos o trampas dinámicas que suelen aparecer en los problemas reales del mundo de la industria.
+
+\subsection{Reflexión sobre la importancia y el impacto en RL}
+Haber construido una arquitectura modular pura (donde el algoritmo o \texttt{Learner} está totalmente separado del simulador \textit{Gymnasium}) tiene un enorme valor para comprender el funcionamiento interno de los algoritmos de aprendizaje por refuerzo. Estos algoritmos clásicos son los pilares fundamentales sobre los que se sostiene la Inteligencia Artificial moderna. Entender las diferencias entre aprender sobre la marcha (\textit{On-Policy}) o de forma disociada (\textit{Off-Policy}), y saber cómo arreglar el exceso de optimismo con \textit{Double Q-Learning}, es un paso obligatorio antes de enfrentarnos a sistemas modernos más complejos como las Redes Neuronales Profundas (\textit{Deep Q-Networks} o DQN). De hecho, los mecanismos avanzados que usan esas redes (como las \textit{Target Networks}) no son más que la evolución directa de los conceptos de predicción paso a paso (\textit{bootstrapping}) que hemos puesto a prueba en este capítulo.
+
+\subsection{Líneas futuras de estudio}
+Vistos los límites evidentes de intentar memorizar cada casilla en una tabla $\mathbf{Q}(S,A)$, el siguiente paso natural para futuras investigaciones será utilizar métodos que permitan al agente "generalizar" su conocimiento.
+El próximo gran salto en desarrollo será abandonar esa inmensa tabla rígida y sustituirla por fórmulas matemáticas o ecuaciones (un Vector de Pesos $\mathbf{w}$) mediante la \textbf{Aproximación de Funciones}. Incorporar herramientas como el descenso de gradiente (\textit{Semi-Gradient SARSA}) o incluso redes neuronales sencillas, permitirá solucionar definitivamente el problema de colapso de memoria RAM. Esto otorgará al agente una capacidad fundamental: el poder de generalizar. Es decir, podrá deducir cuál es la mejor acción a tomar en situaciones o partes del mapa que nunca ha llegado a visitar, simplemente aplicando la lógica que ha aprendido en escenarios similares.
