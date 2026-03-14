@@ -1,0 +1,563 @@
+% ============================================================
+%  Capítulo 3 — Aprendizaje en Entornos Complejos: Métodos Aproximados
+%  EML-RL · Lucas Ortiz ·
+% ============================================================
+
+\chapter{Entornos Complejos: Métodos Aproximados}
+
+% ============================================================
+\section{Introducción}
+% ============================================================
+
+\subsection{Descripción del Problema y su Relevancia}
+
+El \textbf{Aprendizaje por Refuerzo} (RL, del inglés \textit{Reinforcement Learning}) estudia cómo un agente autónomo aprende a tomar decisiones óptimas interactuando con un entorno mediante el esquema de prueba y error. En su formulación estándar como \textbf{Proceso de Decisión de Markov} (MDP), el agente observa el estado del entorno $s_t \in \mathcal{S}$, selecciona una acción $a_t \in \mathcal{A}$ y recibe una recompensa escalar $r_{t+1} \in \mathbb{R}$, con el objetivo de maximizar el retorno acumulado descontado:
+
+\begin{equation}
+  G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1}, \qquad \gamma \in [0, 1)
+\end{equation}
+
+Cuando el espacio de estados $\mathcal{S}$ es \textbf{continuo} o de alta dimensionalidad, la representación tabular de la función de valor-acción $Q: \mathcal{S} \times \mathcal{A} \to \mathbb{R}$ resulta computacionalmente inviable. El problema central de los \textit{entornos complejos} reside en cómo generalizar el conocimiento adquirido en estados visitados hacia estados no visitados de la misma región del espacio.
+
+La relevancia de este problema es doble: por un lado, la mayoría de las aplicaciones industriales y científicas de RL involucran espacios de estados continuos (robótica, vehículos autónomos, gestión de energía, biomedicina); por otro, los avances en \textbf{aproximación de funciones} —especialmente mediante redes neuronales profundas— han impulsado logros como el control a nivel humano en videojuegos Atari \cite{Mnih2015} o el dominio de juegos de mesa complejos \cite{Silver2017}.
+
+\subsection{Motivación del Trabajo}
+
+El punto de partida de este capítulo es el límite de escalabilidad evidenciado en el Capítulo 2 (métodos tabulares). Dado un entorno como \texttt{MountainCar-v0} con un espacio de estados $\mathcal{S} \subseteq \mathbb{R}^2$, la discretización en una rejilla de $20 \times 20 = 400$ celdas muestra que el agente requiere un presupuesto de episodios muy elevado para mejorar de forma apreciable, ya que:
+
+\begin{equation}
+  \hat{Q}(s, a) \text{ solo actualiza la celda } \lfloor s / \Delta \rfloor, \quad \text{sin generalización a } s \pm \epsilon
+\end{equation}
+
+Esta rigidez estructural motiva el estudio de \textbf{métodos aproximados}, que sustituyen la tabla por una función paramétrica $\hat{q}(s, a\,;\, \boldsymbol{\theta})$ capaz de interpolar entre estados no visitados. La motivación específica de este trabajo es:
+
+\begin{enumerate}
+  \item \textbf{Superar la barrera de escalabilidad} de los métodos tabulares en entornos con observaciones continuas.
+  \item \textbf{Comparar el espectro de aproximadores}: desde la aproximación lineal con Tile Coding hasta las redes neuronales profundas (DQN, Double DQN).
+  \item \textbf{Caracterizar el compromiso} entre capacidad expresiva del aproximador, estabilidad del entrenamiento y eficiencia muestral.
+  \item \textbf{Evaluar el papel de la infraestructura Gymnasium} como marco estándar de experimentación reproducible en RL.
+\end{enumerate}
+
+\subsection{Objetivos del Informe}
+
+Este capítulo persigue los siguientes objetivos:
+
+\begin{enumerate}
+    \item \textbf{O1}. Formalizar el marco matemático de la aproximación de funciones en RL.
+    \item \textbf{O2}. Describir e implementar tres familias de métodos aproximados: SARSA Semi-Gradiente con Tile Coding, DQN y Double DQN.
+    \item \textbf{O3}. Diseñar y ejecutar un protocolo experimental reproducible sobre \texttt{CartPole-v1}.
+    \item \textbf{O4}. Analizar cuantitativamente los resultados y comparar las familias algorítmicas.
+    \item \textbf{O5}. Extraer conclusiones sobre la adecuación de cada aproximador.
+\end{enumerate}
+
+\subsection{Organización del Capítulo}
+
+El resto del capítulo se estructura como sigue: \S3.2 presenta la definición formal del problema y los trabajos relacionados; \S3.3 detalla los pseudocódigos y ecuaciones de los tres algoritmos; \S3.4 describe la configuración experimental, métricas y resultados; \S3.5 sintetiza los hallazgos, limitaciones y líneas futuras.
+
+% ============================================================
+\section{Desarrollo}
+% ============================================================
+
+\subsection{Trabajos Relacionados}
+
+La aproximación de funciones en RL tiene sus raíces en los trabajos fundacionales de Sutton (1988) sobre el aprendizaje por Diferencias Temporales (TD) y la tesis de Watkins (1989) sobre Q-Learning.
+
+\subsubsection{Aproximación Lineal y Codificación de Características}
+
+Sutton \& Barto \cite{Sutton2018} formalizan el \textbf{SARSA Semi-Gradiente} con aproximación lineal, demostrando convergencia al óptimo proyectado bajo hipótesis de función de distribución de visita estacionaria $\mu(s)$. El uso de \textbf{Tile Coding} \cite{Sutton1996} como esquema de representación permite aprovechar la sparsidad del vector de características: solo $m$ de los $d$ componentes son activos en cada paso, reduciendo la evaluación de $O(d)$ a $O(m)$.
+
+\subsubsection{Deep Q-Network (DQN)}
+
+Mnih et al.~\cite{Mnih2015} introdujeron \textbf{DQN}, que combina Q-Learning con redes neuronales convolucionales para aprender directamente desde píxeles en 49 juegos Atari. Sus contribuciones técnicas clave fueron:
+
+\begin{itemize}
+  \item \textbf{Experience Replay} \cite{Lin1992}: almacenamiento de transiciones en un buffer $\mathcal{D}$ y muestreo aleatorio de mini-batches para romper correlaciones temporales.
+  \item \textbf{Red Target} (\textit{target network}): copia periódica de los pesos $\boldsymbol{\theta}^- \leftarrow \boldsymbol{\theta}$ para estabilizar los targets de Bellman durante el entrenamiento.
+\end{itemize}
+
+\subsubsection{Double DQN}
+
+Van Hasselt et al.~\cite{vanHasselt2016} identificaron que DQN estándar sobreestima sistemáticamente los valores $Q$ debido al operador $\max$ en el cálculo del target:
+
+\begin{equation}
+  \mathbb{E}\!\left[\max_{a'} Q_{\boldsymbol{\theta}}(s', a')\right] \geq \max_{a'} \mathbb{E}\!\left[Q_{\boldsymbol{\theta}}(s', a')\right]
+\end{equation}
+
+Su solución, \textbf{Double DQN}, desacopla la \textit{selección} de acción (red online $\boldsymbol{\theta}$) de la \textit{evaluación} de su valor (red target $\boldsymbol{\theta}^-$).
+
+\subsubsection{Otras Referencias Relevantes}
+
+Véase la Tabla~\ref{tab:extensiones}.
+
+\begin{table*}[htb!]
+\caption{Principales referencias de DQN en la literatura}\label{tab:extensiones}
+\centering\small
+\begin{tabular}{@{}llp{8cm}@{}}
+\toprule
+\textbf{Método} & \textbf{Referencia} & \textbf{Contribución principal} \\
+\midrule
+Dueling DQN & Wang et al.~(2016) & Desacopla $V(s)$ y $A(s,a)$ \\
+Prioritized Replay & Schaul et al.~(2016) & Muestreo proporcional al error TD \\
+A3C & Mnih et al.~(2016) & Actor-Critic asíncrono sin replay buffer \\
+Rainbow & Hessel et al.~(2018) & Combinación de 6 extensiones de DQN \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Definición Formal del Problema}
+
+El problema de control en entornos complejos se formula como un \textbf{Proceso de Decisión de Markov} (MDP):
+
+\begin{equation}
+  \mathcal{M} = \langle \mathcal{S},\, \mathcal{A},\, \mathcal{P},\, \mathcal{R},\, \gamma \rangle
+\end{equation}
+
+La función de valor-acción óptima $Q^*$ satisface las \textbf{Ecuaciones de Bellman de Optimalidad}:
+
+\begin{equation}
+  Q^*(s,a) = \mathcal{R}(s,a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s'\mid s,a) \max_{a'} Q^*(s',a')
+  = (\mathcal{T}^* Q^*)(s,a)
+\end{equation}
+
+El operador $\mathcal{T}^*$ es una contracción en norma $\ell_\infty$ con factor $\gamma < 1$, garantizando la existencia y unicidad del punto fijo \cite{Bellman1957}. Cuando $|\mathcal{S}|$ es inmanejable, se busca $\hat{q}(\cdot\,;\,\boldsymbol{\theta}) \in \mathcal{F}_{\boldsymbol{\theta}}$ tal que:
+
+\begin{equation}
+  \hat{q}(\cdot\,;\,\boldsymbol{\theta}) \approx Q^*, \qquad \boldsymbol{\theta} \in \mathbb{R}^p,\; p \ll |\mathcal{S}| \cdot |\mathcal{A}|
+\end{equation}
+
+\subsection{Contexto y Antecedentes}
+
+\subsubsection{El Entorno \texttt{CartPole-v1} como Benchmark}
+
+El entorno \texttt{CartPole-v1} de Gymnasium \cite{Towers2023} implementa el problema clásico de control de un péndulo invertido. El estado es el vector $\mathbf{s} = (x,\,\dot{x},\,\theta,\,\dot{\theta})^\top \in \mathbb{R}^4$, con espacio de acciones $\mathcal{A} = \{0, 1\}$ (empuje izquierdo/derecho) y recompensa $R_{t+1} = +1$ por cada paso de supervivencia. CartPole es el benchmark estándar para validar métodos aproximados de RL: su estado continuo hace inviable la tabulación, pero su dinámica es suficientemente simple para converger en cientos de episodios.
+
+\subsubsection{Estructura Modular del Proyecto}
+
+El proyecto implementa el patrón \textbf{Learner--Policy--Agent} con separación estricta de responsabilidades. La clase \texttt{Agent} orquesta el bucle de entrenamiento de forma agnóstica al algoritmo. Para SARSA Semi-Gradiente, el módulo \texttt{TileCodingEnv} actúa como \textbf{Gymnasium Wrapper} que transforma la observación continua $\mathbf{s} \in \mathbb{R}^4$ en el vector de características binario $\boldsymbol{\phi}(\mathbf{s}) \in \{0,1\}^d$.
+
+\subsection{Métodos Utilizados para Abordar el Problema}
+
+Se implementan tres familias de métodos aproximados en orden creciente de complejidad:
+
+\begin{description}
+  \item[Familia 1 — Aproximación Lineal con Tile Coding (SARSA Semi-Gradiente):] $\hat{q}(\mathbf{s}, a\,;\, \mathbf{W}) = \mathbf{w}_a^\top \boldsymbol{\phi}(\mathbf{s})$, con $d = 4 \cdot 8^4 = 16\,384$. Convergencia demostrada bajo condiciones de regularidad. Limitación: no puede representar interacciones no lineales.
+  \item[Familia 2 — Deep Q-Network (DQN):] $Q_{\boldsymbol{\theta}}: \mathbb{R}^4 \to \mathbb{R}^2$ con arquitectura $4 \to 64 \to 2$ (ReLU). Capacidad no lineal con Experience Replay para estabilidad del gradiente.
+  \item[Familia 3 — Double DQN:] Extensión de DQN con desacoplamiento Selección--Evaluación para reducir el sesgo de sobreestimación positivo del operador $\max$.
+\end{description}
+
+\subsection{Diferenciación respecto a Enfoques Previos}
+
+\begin{table*}[htb!]
+\caption{Comparación entre métodos tabulares (Cap.~2) y métodos aproximados (Cap.~3)}\label{tab:diff}
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Dimensión} & \textbf{Métodos Tabulares} & \textbf{Presente Trabajo} \\
+\midrule
+Espacio de estados & Discreto, finito & Continuo, $\mathcal{S} \subseteq \mathbb{R}^4$ \\
+Representación de $Q$ & Tabla $\mathbf{Q} \in \mathbb{R}^{|\mathcal{S}|\times|\mathcal{A}|}$ & Función paramétrica $\hat{q}(\cdot;\boldsymbol{\theta})$ \\
+Generalización & Ninguna (estado a estado) & Implícita (vecindad en $\mathcal{S}$) \\
+Número de parámetros & $|\mathcal{S}| \cdot |\mathcal{A}|$ (exponencial) & $p \ll |\mathcal{S}| \cdot |\mathcal{A}|$ \\
+Entorno de evaluación & \texttt{FrozenLake-v1} (16 estados) & \texttt{CartPole-v1} ($\mathcal{S} \subseteq \mathbb{R}^4$) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% ============================================================
+\section{Algoritmos}
+% ============================================================
+
+Esta sección detalla los tres algoritmos implementados en el proyecto, describiendo sus pasos, ecuaciones de actualización, pseudocódigos formales y la justificación de su elección.
+
+\subsection{Construcción del Vector de Características: Tile Coding}
+
+Dado un estado $\mathbf{s} = (s_1, s_2, s_3, s_4) \in \mathbb{R}^4$, se definen $m$ particiones (\textit{tilings}) del espacio de estado. Para el tiling $k$ y dimensión $j$:
+
+\begin{align}
+  o_j^{(k)} &= \frac{(k-1) \cdot \Delta_j}{m}, \quad \Delta_j = \frac{s_j^{\max} - s_j^{\min}}{n_j} \\[4pt]
+  b_j^{(k)}(s_j) &= \left\lfloor \frac{s_j - s_j^{\min} + o_j^{(k)}}{\Delta_j} \right\rfloor \bmod n_j \\[4pt]
+  \text{idx}^{(k)}(\mathbf{s}) &= \sum_{j=1}^{4} b_j^{(k)}(s_j) \cdot \prod_{j'=1}^{j-1} n_{j'} \\[4pt]
+  \boldsymbol{\phi}(\mathbf{s}) &= \bigoplus_{k=1}^{m} \mathbf{e}_{\text{idx}^{(k)}(\mathbf{s})}^{(N_{\text{tile}})} \;\in\; \{0,1\}^{m \cdot N_{\text{tile}}}
+\end{align}
+
+El vector resultante tiene exactamente $m$ componentes activas: $\|\boldsymbol{\phi}(\mathbf{s})\|_1 = m$. Los parámetros de Tile Coding se detallan en la Tabla~\ref{tab:tilecoding}.
+
+\begin{table}[htb!]
+\caption{Parámetros de Tile Coding en el experimento}\label{tab:tilecoding}
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Símbolo} & \textbf{Valor} \\
+\midrule
+Número de tilings & $m$ & 4 \\
+Bins por dimensión & $n_j$ & 8, $\forall j$ \\
+Teselas por tiling & $N_{\text{tile}}$ & $8^4 = 4\,096$ \\
+Dimensión del vector & $d = m \cdot N_{\text{tile}}$ & 16\,384 \\
+Tasa normalizada & $\alpha_{\text{eff}} = \alpha / m$ & 0.025 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{SARSA Semi-Gradiente con Tile Coding}
+
+SARSA Semi-Gradiente es un método \textbf{on-policy TD(0)} con aproximación lineal. La regla de actualización es:
+
+\begin{equation}
+  \mathbf{w}_{a,t+1} \leftarrow \mathbf{w}_{a,t} + \alpha_{\text{eff}}\,\delta_t\,\boldsymbol{\phi}(\mathbf{s}_t)
+\end{equation}
+
+con el error TD on-policy:
+
+\begin{equation}
+  \delta_t = R_{t+1} + \gamma\,\mathbf{w}_{A_{t+1}}^\top\boldsymbol{\phi}(\mathbf{s}_{t+1}) - \mathbf{w}_{A_t}^\top\boldsymbol{\phi}(\mathbf{s}_t)
+\end{equation}
+
+En forma matricial compacta (actualización de rango 1 sobre $\mathbf{W} \in \mathbb{R}^{|\mathcal{A}| \times d}$):
+
+\begin{equation}
+  \mathbf{W}_{t+1} = \mathbf{W}_t + \alpha_{\text{eff}}\,\delta_t\,\mathbf{e}_{A_t}\,\boldsymbol{\phi}(\mathbf{s}_t)^\top
+\end{equation}
+
+\begin{algorithm}
+\caption{SARSA Semi-Gradiente (on-policy, TD(0))}\label{algo:sarsa}
+\begin{algorithmic}[1]
+\Require env, $m{=}4$, $\alpha{=}0.1$, $\gamma{=}0.95$, $\varepsilon{=}0.1$, $T_{\text{ep}}{=}400$
+\Ensure $\mathbf{W} \in \mathbb{R}^{|\mathcal{A}|\times d}$ (pesos aprendidos)
+\State $\mathbf{W} \gets \mathbf{0}$;\; $\alpha_{\text{eff}} \gets \alpha/m$
+\For{episodio $e = 1, \ldots, T_{\text{ep}}$}
+  \State $s \gets \texttt{env.reset()}$ \Comment{$s = \boldsymbol{\phi}(s_{\text{raw}})$ vía TileCodingEnv}
+  \State $A \gets \varepsilon\text{-greedy}(\mathbf{W} \cdot s)$
+  \While{\textbf{not} done}
+    \State $s', R, \text{done} \gets \texttt{env.step}(A)$
+    \State $A' \gets \varepsilon\text{-greedy}(\mathbf{W} \cdot s')$
+    \State $\delta \gets R + \gamma\,(\mathbf{W}[A'] \cdot s') - (\mathbf{W}[A] \cdot s)$
+    \State $\mathbf{W}[A] \gets \mathbf{W}[A] + \alpha_{\text{eff}}\cdot\delta\cdot s$
+    \State $s \gets s'$;\; $A \gets A'$
+  \EndWhile
+\EndFor
+\State \Return $\mathbf{W}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Deep Q-Network (DQN)}
+
+DQN \cite{Mnih2015} extiende Q-Learning a aproximadores no lineales mediante Experience Replay y red target. La arquitectura es $Q_{\boldsymbol{\theta}}: \mathbb{R}^4 \to \mathbb{R}^2$ con $|\boldsymbol{\theta}| = 450$ parámetros:
+
+\begin{align}
+  \mathbf{h}^{(1)} &= \text{ReLU}\!\left(\mathbf{W}^{(1)}\mathbf{s} + \mathbf{b}^{(1)}\right), \quad \mathbf{W}^{(1)} \in \mathbb{R}^{64\times4} \\
+  Q_{\boldsymbol{\theta}}(\mathbf{s}) &= \mathbf{W}^{(2)}\mathbf{h}^{(1)} + \mathbf{b}^{(2)}, \quad \mathbf{W}^{(2)} \in \mathbb{R}^{2\times64}
+\end{align}
+
+La función de pérdida MSE sobre el mini-batch $\mathcal{B} \overset{\text{i.i.d.}}{\sim} \mathcal{D}$:
+
+\begin{equation}
+  \mathcal{L}(\boldsymbol{\theta};\,\mathcal{B}) = \frac{1}{B}\sum_{i=1}^{B}\left(y_i - Q_{\boldsymbol{\theta}}(s_i)_{a_i}\right)^2, \qquad y_i = r_i + \gamma\,(1-d_i)\,\max_{a'} Q_{\boldsymbol{\theta}}(s'_i)_{a'}
+\end{equation}
+
+Los pesos se actualizan con el optimizador \textbf{Adam} \cite{Kingma2015} ($\eta = 10^{-3}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$).
+
+\begin{algorithm}
+\caption{Deep Q-Network (DQN)}\label{algo:dqn}
+\begin{algorithmic}[1]
+\Require env, $\eta{=}10^{-3}$, $\gamma{=}0.95$, $\varepsilon{=}0.1$, $B{=}64$, $|\mathcal{D}|_{\max}{=}10000$, $T_{\text{ep}}{=}400$
+\Ensure $\boldsymbol{\theta}$ (pesos de la Q-red)
+\State $\boldsymbol{\theta} \gets \text{Xavier-init}(4{\to}64{\to}2)$;\; $\mathcal{D} \gets \emptyset$
+\For{episodio $e = 1, \ldots, T_{\text{ep}}$}
+  \State $s \gets \texttt{env.reset()}$
+  \While{\textbf{not} done}
+    \State $a \gets \varepsilon\text{-greedy}(Q_{\boldsymbol{\theta}}(s))$
+    \State $s', r, \text{done} \gets \texttt{env.step}(a)$
+    \State $\mathcal{D} \gets \mathcal{D} \cup \{(s, a, r, s', \text{done})\}$
+    \If{$|\mathcal{D}| \geq B$}
+      \State $\mathcal{B} \gets \text{SampleUniform}(\mathcal{D}, B)$
+      \State $y_i \gets r_i + \gamma(1{-}d_i)\max_{a'} Q_{\boldsymbol{\theta}}(s'_i)_{a'}$ \textbf{for each} $(s_i,a_i,r_i,s'_i,d_i) \in \mathcal{B}$
+      \State $\boldsymbol{\theta} \gets \text{Adam}(\boldsymbol{\theta},\,\nabla_{\boldsymbol{\theta}}\mathcal{L})$
+    \EndIf
+    \State $s \gets s'$
+  \EndWhile
+\EndFor
+\State \Return $\boldsymbol{\theta}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Double Deep Q-Network (Double DQN)}
+
+Double DQN \cite{vanHasselt2016} corrige el sesgo de sobreestimación desacoplando la selección y evaluación de la acción óptima mediante la \textbf{red target} $\boldsymbol{\theta}^-$:
+
+\begin{equation}
+  y_i^{\text{DDQN}} = r_i + \gamma\,(1-d_i)\; Q_{\boldsymbol{\theta}^-}\!\!\left(s'_i,\; \underbrace{\arg\max_{a'} Q_{\boldsymbol{\theta}}(s'_i, a')}_{\text{selección: red online } \boldsymbol{\theta}}\right)
+\end{equation}
+
+La red target se actualiza con copia \textit{hard} cada $\tau = 100$ pasos: $\boldsymbol{\theta}^- \leftarrow \boldsymbol{\theta}$.
+
+\begin{algorithm}
+\caption{Double Deep Q-Network (Double DQN)}\label{algo:ddqn}
+\begin{algorithmic}[1]
+\Require env, $\eta{=}10^{-3}$, $\gamma{=}0.95$, $\varepsilon{=}0.1$, $B{=}64$, $\tau{=}100$, $T_{\text{ep}}{=}400$
+\Ensure $\boldsymbol{\theta}$ (pesos de la red online)
+\State $\boldsymbol{\theta} \gets \text{Xavier-init}(4{\to}64{\to}2)$;\; $\boldsymbol{\theta}^- \gets \boldsymbol{\theta}$;\; $\mathcal{D} \gets \emptyset$;\; $t_g \gets 0$
+\For{episodio $e = 1, \ldots, T_{\text{ep}}$}
+  \State $s \gets \texttt{env.reset()}$
+  \While{\textbf{not} done}
+    \State $a \gets \varepsilon\text{-greedy}(Q_{\boldsymbol{\theta}}(s))$
+    \State $s', r, \text{done} \gets \texttt{env.step}(a)$
+    \State $\mathcal{D} \gets \mathcal{D} \cup \{(s, a, r, s', \text{done})\}$
+    \If{$|\mathcal{D}| \geq B$}
+      \State $\mathcal{B} \gets \text{SampleUniform}(\mathcal{D}, B)$
+      \State $a^*_i \gets \arg\max_{a'} Q_{\boldsymbol{\theta}}(s'_i)_{a'}$;\; $y_i \gets r_i + \gamma(1{-}d_i)\,Q_{\boldsymbol{\theta}^-}(s'_i)_{a^*_i}$
+      \State $\boldsymbol{\theta} \gets \text{Adam}(\boldsymbol{\theta},\,\nabla_{\boldsymbol{\theta}}\mathcal{L})$
+    \EndIf
+    \State $t_g \gets t_g + 1$
+    \If{$t_g \bmod \tau = 0$} $\boldsymbol{\theta}^- \gets \boldsymbol{\theta}$ \EndIf
+    \State $s \gets s'$
+  \EndWhile
+\EndFor
+\State \Return $\boldsymbol{\theta}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Justificación de los Algoritmos Elegidos}
+
+\begin{table*}[htb!]
+\caption{Criterios de selección de los algoritmos}\label{tab:criterios}
+\centering\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Criterio} & \textbf{SARSA SG} & \textbf{DQN} & \textbf{DDQN} \\
+\midrule
+Espacio continuo $\mathcal{S} \subseteq \mathbb{R}^4$ & \checkmark & \checkmark & \checkmark \\
+Convergencia demostrada & \checkmark & Parcial & Parcial \\
+Corrección de sobreestimación & --- & --- & \checkmark \\
+Generalización no lineal & --- & \checkmark & \checkmark \\
+Eficiencia muestral & Alta ($O(m)$) & Media & Media \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+SARSA Semi-Gradiente actúa como \textbf{línea base} clásica. DQN es el representante canónico del RL profundo basado en valor. Double DQN aísla empíricamente el efecto de la corrección del sesgo de sobreestimación, al compartir arquitectura y todos los hiperparámetros con DQN. Los criterios de selección se resumen en la Tabla~\ref{tab:criterios}.
+
+% ============================================================
+\section{Evaluación / Experimentos}
+% ============================================================
+
+\subsection{Configuración Experimental: herramientas y entorno}
+
+Los experimentos se desarrollaron sobre el siguiente stack tecnológico, recogido en la Tabla~\ref{tab:stack}:
+
+\begin{table*}[htb!]
+\caption{Stack tecnológico del experimento}\label{tab:stack}
+\centering\small
+\begin{tabular}{@{}llp{7cm}@{}}
+\toprule
+\textbf{Componente} & \textbf{Herramienta} & \textbf{Función} \\
+\midrule
+Entorno RL & \texttt{gymnasium} \cite{Towers2023} & Simulador CartPole-v1 \\
+Álgebra vectorial & \texttt{numpy} & Tile Coding, actualización de pesos \\
+Deep Learning & \texttt{torch} (PyTorch) & Redes neuronales, Adam \\
+Visualización & \texttt{matplotlib} & Curvas de aprendizaje \\
+Monitoreo & \texttt{tqdm} & Progreso del entrenamiento \\
+Buffer replay & \texttt{collections.deque} & Experience Replay \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsubsection{Entorno de Prueba: \texttt{CartPole-v1}}
+
+El entorno \texttt{CartPole-v1} induce un MDP con espacio de estados continuo de dimensión 4:
+
+\begin{equation}
+  \mathbf{s} = \begin{pmatrix} x \\ \dot{x} \\ \theta \\ \dot{\theta} \end{pmatrix} \in \mathbb{R}^4
+\end{equation}
+
+\begin{table}[htb!]
+\caption{Variables de estado de \texttt{CartPole-v1}}\label{tab:cartpole}
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Variable} & \textbf{Descripción} & \textbf{Rango} \\
+\midrule
+$x$ & Posición del carro & $[-4.8,\ 4.8]$ \\
+$\dot{x}$ & Velocidad lineal & $\mathbb{R}$ \\
+$\theta$ & Ángulo del palo (rad) & $(-\pi/15,\ \pi/15)$ \\
+$\dot{\theta}$ & Velocidad angular & $\mathbb{R}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las acciones son $\mathcal{A} = \{0\ (\text{izq.}),\ 1\ (\text{der.})\}$ y la recompensa es $R_{t+1} = +1$ por cada paso de supervivencia (máximo 500 por episodio) Las variables de estado de \texttt{CartPole-v1} se detallan en la Tabla~\ref{tab:cartpole}.
+
+\subsubsection{Protocolo Experimental}
+
+\begin{table}[htb!]
+\caption{Protocolo experimental}\label{tab:protocolo}
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Valor} \\
+\midrule
+Número de ejecuciones ($N_\text{runs}$) & 10 \\
+Episodios por ejecución ($T_\text{ep}$) & 400 \\
+Semilla base ($\sigma$) & 123 \\
+Factor de descuento ($\gamma$) & 0.95 \\
+Política de exploración & $\varepsilon$-greedy, $\varepsilon = 0.1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El protocolo experimental se detalla en la tabla \ref{tab:protocolo}. La reproducibilidad se garantiza mediante la función \texttt{set\_seed}($\sigma$).
+
+
+\subsubsection{Datasets Empleados}
+
+Por tratarse de un entorno de simulación RL, no existe un dataset estático previo. Las muestras son \textbf{trayectorias} $(s_t, a_t, r_{t+1}, s_{t+1})$ generadas en línea. Los métodos Deep RL almacenan transiciones en el Experience Replay Buffer $\mathcal{D}$ ($|\mathcal{D}|_\max = 10\,000$) y extraen mini-batches $\mathcal{B}$ de tamaño $B = 64$:
+
+\begin{equation}
+  \mathcal{B} = \{(s_i, a_i, r_i, s'_i, d_i)\}_{i=1}^{64} \overset{\text{i.i.d.}}{\sim} \mathcal{D}
+\end{equation}
+
+\subsection{Métricas de Evaluación}
+
+\subsubsection{Métrica Principal: $\overline{R}_{[-50:]}$}
+
+La métrica principal es la recompensa media en los últimos 50 episodios del entrenamiento, promediada sobre los 10 runs:
+
+\begin{equation}
+  \overline{R}_{[-50:]} = \frac{1}{50} \sum_{e=351}^{400} \bar{R}_e, \qquad \bar{R}_e = \frac{1}{N_\text{runs}} \sum_{n=1}^{N_\text{runs}} R_e^{(n)}
+\end{equation}
+
+Un valor de 500 indica política perfecta (palo siempre erguido).
+
+\subsubsection{Pérdida de Entrenamiento (Solo Deep RL)}
+
+Para DQN y Double DQN se registra la pérdida media por episodio:
+
+\begin{equation}
+  \bar{\mathcal{L}}_e = \frac{1}{|\text{updates}_e|} \sum_{t \in \text{updates}_e} \mathcal{L}(\boldsymbol{\theta}_t;\, \mathcal{B}_t)
+\end{equation}
+
+\begin{table*}[htb!]
+\caption{Resumen de métricas de evaluación}\label{tab:metricas}
+\centering\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Métrica} & \textbf{Símbolo} & \textbf{Propósito} & \textbf{Algoritmos} \\
+\midrule
+Recompensa régimen estacionario & $\overline{R}_{[-50:]}$ & Calidad de la política & Todos \\
+Curva de aprendizaje & $\bar{R}_e$ & Dinámica de convergencia & Todos \\
+Pérdida de entrenamiento & $\bar{\mathcal{L}}_e$ & Estabilidad de optimización & DQN, DDQN \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Véase Tabla~\ref{tab:metricas}.
+
+\subsection{Resultados Obtenidos}
+
+\begin{table*}[htb!]
+\caption{Resultados globales — Recompensa media en los últimos 50 episodios}\label{tab:resultados}
+\centering\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Algoritmo} & \textbf{Aproximador} & \textbf{Parámetros} & $\overline{R}_{[-50:]}$ & \textbf{Relat. al máx. (500)} \\
+\midrule
+SARSA Semi-Gradiente & Lineal + Tile Coding & 32\,768 & 69.42 & 13.9\% \\
+DQN & Red neuronal (PyTorch) & 450 & \textbf{218.26} & \textbf{43.7\%} \\
+Double DQN & Dual red neuronal & 900 & 189.06 & 37.8\% \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Ningún algoritmo alcanza la recompensa máxima de 500 en el horizonte de 400 episodios, indicando convergencia incompleta. El ordenamiento DQN $>$ Double DQN $>$ SARSA es consistente con las predicciones teóricas. Véase Tabla~\ref{tab:resultados}.
+
+\subsection{Análisis Crítico y Comparación con Otros Enfoques}
+
+\subsubsection{SARSA Semi-Gradiente — $\overline{R}_{[-50:]} = 69.42$}
+
+La restricción de la hipótesis lineal impide capturar las interacciones no lineales entre las variables de estado (posición, velocidad, ángulo, velocidad angular correlacionan de forma compleja en CartPole). Adicionalmente, los 32\,768 pesos reciben actualizaciones que solo afectan a $m = 4$ entradas en cada paso, mientras que DQN actualiza densamente sus 450 parámetros vía backpropagation.
+
+\subsubsection{DQN — $\overline{R}_{[-50:]} = 218.26$ (mejor resultado)}
+
+La no-linealidad de ReLU permite representar $Q^*$ con precisión suficiente en 400 episodios. El Experience Replay estabiliza el gradiente estocástico al decorrelacionar las muestras. La principal limitación teórica es el sesgo de sobreestimación positivo acumulado en la propagación de Bellman.
+
+\subsubsection{Double DQN — $\overline{R}_{[-50:]} = 189.06$}
+
+El desacoplamiento Selección--Evaluación mediante la red target reduce el sesgo de sobreestimación. Sin embargo, la \textbf{inercia de la red target} ($\tau = 100$ pasos) ralentiza la convergencia inicial en el horizonte de 400 episodios. Con horizontes más largos ($T_\text{ep} > 1\,000$), la reducción del sesgo favorece estadísticamente a Double DQN, como documenta la literatura \cite{vanHasselt2016} (véase Tabla~\ref{tab:literatura}).
+
+\subsubsection{Comparación con la Literatura}
+
+\begin{table*}[htb!]
+\caption{Comparación con resultados de la literatura}\label{tab:literatura}
+\centering\small
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{Referencia} & \textbf{Algoritmo} & \textbf{Entorno} & $\overline{R}$ & \textbf{Observación} \\
+\midrule
+Mnih et al.~\cite{Mnih2015} & DQN & Atari & Nivel humano & $\sim$10M steps \\
+van Hasselt et al.~\cite{vanHasselt2016} & DDQN & Atari & $>$ DQN en 43/49 & Horizonte largo \\
+Sutton \& Barto \cite{Sutton2018} & SARSA SG & MountainCar & $-100$ a $-150$ & Comparablemente \\
+\textbf{Este trabajo} & Todos & CartPole-v1 & 69/218/189 & 400~ep., incompleto \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+% ============================================================
+\section{Conclusiones}
+% ============================================================
+
+Esta sección sintetiza los hallazgos principales del estudio experimental sobre métodos aproximados de Aprendizaje por Refuerzo, extrae las lecciones teóricas y prácticas derivadas de los resultados, discute las limitaciones del trabajo y propone líneas de investigación futuras.
+
+\subsection{Resumen de los Principales Resultados Obtenidos}
+
+El experimento comparó tres familias de métodos aproximados sobre el entorno \texttt{CartPole-v1} con un protocolo de $N_\text{runs} = 10$ ejecuciones y $T_\text{ep} = 400$ episodios. Los resultados evidencian un ordenamiento consistente con las predicciones teóricas: DQN $>$ Double DQN $>$ SARSA Semi-Gradiente (véase Tabla~\ref{tab:resultados}).
+
+Se extraen cinco conclusiones clave:
+
+\begin{enumerate}
+  \item \textbf{Los métodos aproximados generalizan en espacios continuos.} La sustitución de la tabla $\mathbf{Q}$ por un aproximador paramétrico $\hat{q}(\cdot;\boldsymbol{\theta})$ permite aprender en $\mathcal{S} \subseteq \mathbb{R}^4$, imposible con representación tabular.
+
+  \item \textbf{La capacidad del aproximador determina la calidad de la política.} La brecha SARSA (69.42) vs.\ DQN (218.26) refleja la diferencia en familia de hipótesis: la combinación lineal de tiles no puede representar las interacciones no lineales que sí captura ReLU.
+
+  \item \textbf{El Experience Replay es condición crítica de estabilidad.} El muestreo uniforme $\mathcal{B} \overset{\text{i.i.d.}}{\sim} \mathcal{D}$ convierte el problema en regresión supervisada, eliminando el sesgo de la correlación temporal entre transiciones consecutivas.
+
+  \item \textbf{La red target regulariza el problema no estacionario de los targets.} La copia periódica $\boldsymbol{\theta}^- \leftarrow \boldsymbol{\theta}$ cada $\tau = 100$ pasos congela la distribución de targets, convirtiendo la optimización no estacionaria en una quasi-estacionaria localmente.
+
+  \item \textbf{El ordenamiento empírico depende del horizonte.} La ventaja teórica de Double DQN sobre DQN (sesgo de sobreestimación reducido) solo se manifiesta plenamente para $T_\text{ep} > 1\,000$; en 400 episodios, la inercia de la red target ralentiza la convergencia inicial.
+\end{enumerate}
+
+\subsection{Limitaciones del Estudio}
+
+A pesar de los resultados satisfactorios, el presente trabajo presenta las siguientes limitaciones que deben tenerse en cuenta al interpretar las conclusiones tal como muestra la tabla \ref{tab:limitaciones}
+
+\begin{table*}[htb!]
+\caption{Limitaciones del estudio experimental}\label{tab:limitaciones}
+\centering\small
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Limitación} & \textbf{Impacto} \\
+\midrule
+Horizonte reducido ($T_\text{ep} = 400$) & Convergencia incompleta; ningún algoritmo alcanza 500 \\
+Entorno único (\texttt{CartPole-v1}) & Rankings relativos no generalizables a otros entornos \\
+Hiperparámetros fijos (sin búsqueda) & Resultados comparativos, no óptimos absolutos \\
+Sin intervalos de confianza formales & No se cuantifica la varianza entre runs estadísticamente \\
+Política $\varepsilon$ constante ($\varepsilon = 0.1$) & No se explota la política aprendida en fases tardías \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Líneas de Trabajo Futuro}
+
+\begin{enumerate}
+  \item \textbf{Mayor horizonte de entrenamiento} ($T_\text{ep} > 1\,000$) para confirmar la superioridad de Double DQN sobre DQN.
+  \item \textbf{Decaimiento de $\varepsilon$} (\textit{epsilon decay}): $\varepsilon(t) = \varepsilon_{\min} + (\varepsilon_0 - \varepsilon_{\min}) e^{-\lambda t}$ para reducir exploración progresivamente.
+  \item \textbf{Optimización bayesiana de hiperparámetros} mediante \textit{Optuna} o \textit{Ax}.
+  \item \textbf{Entornos de mayor complejidad}: LunarLander-v2 ($\mathbb{R}^8$), BipedalWalker ($\mathbb{R}^{24}$), MuJoCo.
+  \item \textbf{Arquitecturas avanzadas}: Dueling DQN \cite{Wang2016}, Prioritized Experience Replay \cite{Schaul2016}, Rainbow \cite{Hessel2018}.
+  \item \textbf{Análisis estadístico formal}: \textit{bootstrapped confidence intervals} al 95\%, test de Wilcoxon con corrección de Bonferroni.
+  \item \textbf{Transferencia de aprendizaje}: uso de los pesos $\boldsymbol{\theta}$ pre-entrenados como inicialización en entornos relacionados.
+\end{enumerate}
+
+\subsection{Reflexión Final}
+
+Este capítulo demuestra que la transición de los métodos tabulares a los métodos aproximados no es meramente una extensión técnica, sino un cambio cualitativo en la naturaleza del problema de aprendizaje: de la memorización de una tabla finita a la \textbf{inferencia de una función} sobre un espacio continuo. Los tres algoritmos estudiados representan tres puntos del espectro de complejidad del aproximador ---lineal, red \textit{shallow}, red con target estabilizada--- y sus diferencias de rendimiento ilustran de forma concreta el compromiso entre \textbf{capacidad expresiva}, \textbf{eficiencia muestral} y \textbf{estabilidad del entrenamiento} central en la investigación moderna de Aprendizaje por Refuerzo Profundo.

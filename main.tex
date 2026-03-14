@@ -1,0 +1,109 @@
+% --------------------- NO TOCAR ----------------------
+\documentclass[a4paper, 10pt, twocolumn]{report}
+\input plantillaTeXpracticasRL.sty % Incluir fichero de estilo del máster
+% -----------------------------------------------------
+
+
+\renewcommand{\epigraphflush}{flushleft}
+
+% MODIFICA ESTOS DATOS
+% Incluir el nombre de la obra y los nombres completos de los autores del trabajo, junto con el correo electrónico um.es para cada autor.
+\title{\textbf{\textcolor{UMUblue}{Extensiones de Machine Learning \\ Aprendizaje por Refuerzo}}}
+\author{
+Marta Lucas Marín 	\\
+\texttt{m.lucasmarin@um.es} \\[0.4cm]
+Francisco José Lucas Robles 	\\
+\texttt{fjlr1@um.es} \\[0.4cm]
+Jorge Ruiz Ortiz 	\\
+\texttt{j.ruizortiz@um.es}}
+\date{
+\today
+\vspace{3cm}%  
+\epigraph{\large{¡Nunca seré derrotado por una máquina! Jamás se inventará un programa que supere la inteligencia humana.}}{\large{G. Kasparov, 1989}\footnote{De una entrevista publicada en la edición nº 55 de la revista \textit{Jeux \& Stratégie.}}}
+}
+
+\setcounter{tocdepth}{1} % Profundidad del índice
+
+\begin{document}
+
+% Carátula
+\begin{titlepage}
+\newgeometry{margin=1in}
+\maketitle
+\restoregeometry
+\end{titlepage}
+
+% Resumen
+\input{resumen}
+
+% Índice
+\tableofcontents
+
+% Trabajos
+\input{bandido}
+\input{metodos_tabulares}
+\input{metodos_aproximados}
+
+% Bibliografía  
+\begin{thebibliography}{9} % El parámetro 9 indica el ancho máximo de la etiqueta, aquí "9" es un ejemplo
+	\setlength{\itemsep}{0pt} % No tocar. Reduce aún más el espacio entre ítems 
+  	\setlength{\parsep}{0pt}    % No tocar. Elimina el espacio adicional entre párrafos dentro de un ítem
+  	
+    \bibitem{sutton2018reinforcement} % Para citar usar \cite{ref1}
+    Sutton, R.S. y Barto, A.G (2018). \textit{Reinforcement Learning: An Introduction}. The MIT Press Cambridge, Second Edition.
+
+    \bibitem{auer2002finitetime} % Para citar usar \cite{ref2}
+    Auer, P., Cesa-Bianchi, N. y Fischer, P (2002). \textit{Finite-time Analysis of the Multiarmed Bandit Problem}. Machine Learning 47, 235–256.
+
+    \bibitem{Watkins1989}
+    Watkins, Christopher y Dayan, Peter. (1992). Technical Note: Q-Learning. Machine Learning. 8. 279-292. 10.1007/BF00992698. 
+
+    \bibitem{SARSA1994}
+    Rummery, G. & Niranjan, Mahesan. (1994). On-Line Q-Learning Using Connectionist Systems. Technical Report CUED/F-INFENG/TR 166. 
+
+    \bibitem{Hasselt2010DD}
+    Van Hasselt, Hado. (2010). Double Q-learning. 2613-2621.
+
+    \bibitem{Mnih2015}
+    Mnih, V. et al. (2015). Human-level control through deep reinforcement learning. \textit{Nature}, 518, 529--533.
+
+    \bibitem{vanHasselt2016}
+    van Hasselt, H., Guez, A. \& Silver, D. (2016). Deep Reinforcement Learning with Double Q-learning. \textit{AAAI-16}.
+
+    \bibitem{Sutton2018}
+    Sutton, R.S. \& Barto, A.G. (2018). \textit{Reinforcement Learning: An Introduction} (2nd ed.). MIT Press.
+
+    \bibitem{Sutton1996}
+    Sutton, R.S. (1996). Generalization in reinforcement learning. \textit{NIPS 1995}.
+
+    \bibitem{Towers2023}
+    Towers, M. et al. (2023). Gymnasium. \textit{Zenodo}. \url{https://doi.org/10.5281/zenodo.8127025}
+
+    \bibitem{Kingma2015}
+    Kingma, D.P. \& Ba, J. (2015). Adam: A Method for Stochastic Optimization. \textit{ICLR 2015}.
+
+    \bibitem{Lin1992}
+    Lin, L.-J. (1992). Self-improving reactive agents based on reinforcement learning. \textit{Machine Learning}, 8(3), 293--321.
+
+    \bibitem{Bellman1957}
+    Bellman, R. (1957). \textit{Dynamic Programming}. Princeton University Press.
+
+    \bibitem{Silver2017}
+    Silver, D. et al. (2017). Mastering the game of Go without human knowledge. \textit{Nature}, 550, 354--359.
+
+    \bibitem{Wang2016}
+    Wang, Z. et al. (2016). Dueling Network Architectures for Deep Reinforcement Learning. \textit{ICML 2016}.
+
+    \bibitem{Schaul2016}
+    Schaul, T. et al. (2016). Prioritized Experience Replay. \textit{ICLR 2016}.
+
+    \bibitem{Hessel2018}
+    Hessel, M. et al. (2018). Rainbow: Combining Improvements in Deep Reinforcement Learning. \textit{AAAI-18}.
+    
+\end{thebibliography}
+
+
+Listar todas las referencias utilizadas en el trabajo, siguiendo un formato bibliográfico estándar de \LaTeX\/ o de alguna asociación (APA, IEEE, etc.). La información obligatoria para que tipo de publicación la puede consultar en \url{https://bibtex.eu/fields/} Se recomienda utilizar un gestor de referencias como Bib\TeX\/ para facilitar la organización de las citas solo si va a poner mucha bibliografía. 
+
+
+\end{document} 
