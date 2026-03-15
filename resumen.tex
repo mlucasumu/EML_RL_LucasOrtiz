@@ -1,0 +1,27 @@
+% ============================================================
+%  Resumen — Extensiones de Machine Learning: Aprendizaje por Refuerzo
+% ============================================================
+
+\begin{abstract}
+\noindent
+Este trabajo estudia el Aprendizaje por Refuerzo (RL) de forma progresiva, partiendo del paradigma más simple de toma de decisiones secuencial hasta los métodos de aproximación profunda con redes neuronales, a través de tres bloques de contenido interconectados.
+
+\medskip
+\noindent
+\textbf{Capítulo 1 — Problema del Bandido de $k$-brazos.}
+Se introduce el dilema fundamental del RL: el balance entre \textit{exploración} y \textit{explotación}. Un agente interactúa con un entorno estocástico de $k$ palancas, cada una con una distribución de recompensa desconocida, buscando maximizar la ganancia acumulada en un horizonte finito de $T = 300$ pasos. Se implementan y comparan empíricamente tres familias algorítmicas bajo $N = 500$ ejecuciones y distribuciones de recompensa Normal, Binomial y Bernoulli: (i)~\textbf{$\epsilon$-Greedy} y su variante con decaimiento $\epsilon$-Decay, que combinan explotación determinista con exploración aleatoria; (ii)~\textbf{UCB} (UCB1, UCB2, UCB1-Tuned), que racionalizan la exploración mediante límites de confianza superior sobre la incertidumbre de cada brazo; y (iii)~\textbf{Ascenso de Gradiente} (Softmax y Preferencias), que aprenden una distribución de selección sobre las acciones. Los resultados muestran que no existe un algoritmo universalmente óptimo: UCB2 sobresale en entornos Normales, mientras que el Gradiente de Preferencias ($\alpha = 0.5$) domina en el régimen binario Bernoulli con un arrepentimiento acumulado prácticamente nulo ($\text{Regret} \approx 0$).
+
+\medskip
+\noindent
+\textbf{Capítulo 2 — Entornos Complejos: Métodos Tabulares.}
+Se formula el problema de control óptimo como un Proceso de Decisión de Markov (MDP) $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$ y se evalúa la familia de métodos tabulares model-free sobre el entorno \texttt{CliffWalking-v0}. Se implementan Monte Carlo On/Off-Policy, SARSA, Expected SARSA, Q-Learning, Double Q-Learning y variantes de $n$-pasos. Se diseña una arquitectura modular que desacopla el agente, el algoritmo (\textit{Learner}) y el entorno (Gymnasium), garantizando reproducibilidad con $N = 10$ ejecuciones de 400 episodios ($\gamma = 0.95$, $\alpha = 0.5$). Los experimentos evidencian la superioridad de Expected SARSA ($\approx{-}15$ puntos de penalización) frente a Q-Learning ($\approx{-}56$) gracias a su robustez ante tasas de aprendizaje elevadas, y demuestran la ineficacia práctica de Monte Carlo en entornos con penalizaciones severas. Double Q-Learning resuelve el \textit{Maximization Bias} a costa de una convergencia más lenta. El análisis concluye con el límite intrínseco de los métodos tabulares: la \textit{maldición de la dimensionalidad} hace inviable la representación matricial $\mathbf{Q} \in \mathbb{R}^{|\mathcal{S}| \times |\mathcal{A}|}$ en espacios de estados continuos.
+
+\medskip
+\noindent
+\textbf{Capítulo 3 — Entornos Complejos: Métodos Aproximados.}
+Para superar la barrera de escalabilidad, se substituye la tabla $\mathbf{Q}$ por una función paramétrica $\hat{q}(\cdot\,;\,\boldsymbol{\theta})$ y se evalúan tres aproximadores de complejidad creciente sobre \texttt{CartPole-v1} ($\mathcal{S} \subseteq \mathbb{R}^4$) con $N = 10$ ejecuciones de 400 episodios: (i)~\textbf{SARSA Semi-Gradiente} con Tile Coding ($d = 16\,384$ características binarias, 32\,768 parámetros), cuya aproximación lineal limita la expresividad; (ii)~\textbf{DQN} (red $4 \to 64 \to 2$ con ReLU, Adam $\eta = 10^{-3}$, Experience Replay y red target), que combina la no linealidad neuronal con estabilización del proceso de Bellman; y (iii)~\textbf{Double DQN}, extensión de DQN que desacopla selección y evaluación de la acción óptima para corregir el sesgo de sobreestimación. Los resultados ($\overline{R}_{[-50:]}$: SARSA~69, DQN~218, Double DQN~189) confirman que la capacidad expresiva del aproximador determina la calidad de la política, que el Experience Replay es condición crítica de estabilidad, y que la ventaja de Double DQN sobre DQN solo emerge en horizontes de entrenamiento superiores a $T_\text{ep} > 1\,000$ episodios.
+
+\medskip
+\noindent
+En conjunto, los tres capítulos trazan una progresión coherente desde la exploración-explotación en un único estado hasta el control de sistemas dinámicos continuos mediante redes neuronales profundas, ilustrando los compromisos fundamentales del RL entre \textbf{capacidad expresiva}, \textbf{eficiencia muestral} y \textbf{estabilidad del aprendizaje}.
+\end{abstract}
