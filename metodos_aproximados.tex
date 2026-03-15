@@ -140,9 +140,9 @@ El proyecto implementa el patrón \textbf{Learner--Policy--Agent} con separació
 Se implementan tres familias de métodos aproximados en orden creciente de complejidad:
 
 \begin{description}
-  \item[Familia 1 — Aproximación Lineal con Tile Coding (SARSA Semi-Gradiente):] $\hat{q}(\mathbf{s}, a\,;\, \mathbf{W}) = \mathbf{w}_a^\top \boldsymbol{\phi}(\mathbf{s})$, con $d = 4 \cdot 8^4 = 16\,384$. Convergencia demostrada bajo condiciones de regularidad. Limitación: no puede representar interacciones no lineales.
-  \item[Familia 2 — Deep Q-Network (DQN):] $Q_{\boldsymbol{\theta}}: \mathbb{R}^4 \to \mathbb{R}^2$ con arquitectura $4 \to 64 \to 2$ (ReLU). Capacidad no lineal con Experience Replay para estabilidad del gradiente.
-  \item[Familia 3 — Double DQN:] Extensión de DQN con desacoplamiento Selección--Evaluación para reducir el sesgo de sobreestimación positivo del operador $\max$.
+  \item[Familia 1. Aproximación Lineal con Tile Coding (SARSA Semi-Gradiente):] $\hat{q}(\mathbf{s}, a\,;\, \mathbf{W}) = \mathbf{w}_a^\top \boldsymbol{\phi}(\mathbf{s})$, con $d = 4 \cdot 8^4 = 16\,384$. Convergencia demostrada bajo condiciones de regularidad. Limitación: no puede representar interacciones no lineales.
+  \item[Familia 2. Deep Q-Network (DQN):] $Q_{\boldsymbol{\theta}}: \mathbb{R}^4 \to \mathbb{R}^2$ con arquitectura $4 \to 64 \to 2$ (ReLU). Capacidad no lineal con Experience Replay para estabilidad del gradiente.
+  \item[Familia 3. Double DQN:] Extensión de DQN con desacoplamiento Selección--Evaluación para reducir el sesgo de sobreestimación positivo del operador $\max$.
 \end{description}
 
 \subsection{Diferenciación respecto a Enfoques Previos}
@@ -483,9 +483,9 @@ La no-linealidad de ReLU permite representar $Q^*$ con precisión suficiente en 
 
 \subsubsection{Double DQN — $\overline{R}_{[-50:]} = 189.06$}
 
-El desacoplamiento Selección--Evaluación mediante la red target reduce el sesgo de sobreestimación. Sin embargo, la \textbf{inercia de la red target} ($\tau = 100$ pasos) ralentiza la convergencia inicial en el horizonte de 400 episodios. Con horizontes más largos ($T_\text{ep} > 1\,000$), la reducción del sesgo favorece estadísticamente a Double DQN, como documenta la literatura \cite{vanHasselt2016} (véase Tabla~\ref{tab:literatura}).
+El desacoplamiento Selección--Evaluación mediante la red target reduce el sesgo de sobreestimación. Sin embargo, la \textbf{inercia de la red target} ($\tau = 100$ pasos) ralentiza la convergencia inicial en el horizonte de 400 episodios. Con horizontes más largos ($T_\text{ep} > 1\,000$), la reducción del sesgo favorece estadísticamente a Double DQN, como documenta la literatura \cite{vanHasselt2016}.
 
-\subsubsection{Comparación con la Literatura}
+En la Tabla~\ref{tab:literatura}, tenemos una comparación con resultados de la literatura.
 
 \begin{table*}[htb!]
 \caption{Comparación con resultados de la literatura}\label{tab:literatura}
